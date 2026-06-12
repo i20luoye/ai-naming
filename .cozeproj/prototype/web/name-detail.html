@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;600&family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #4A6FA5;
+      --color-primary-container:    #D4DFEF;
+      --color-on-primary:           #ffffff;
+      --color-secondary:            #5B9EA6;
+      --color-secondary-container:  #D4ECF0;
+      --color-on-secondary:         #ffffff;
+      --color-accent:               #C75C5C;
+      --color-accent-container:     #F5DCDC;
+      --color-on-accent:            #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #FAF9F7;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFFFF;
+      --color-surface-container:          #F5F3F0;
+      --color-surface-container-high:     #EDE9E3;
+      --color-surface-container-highest:  #E8E6E3;
+      /* === 文字 === */
+      --color-on-surface:           #1A1A1A;
+      --color-on-surface-variant:   #666666;
+      /* === 功能色 === */
+      --color-success:  #5B8C5A;
+      --color-error:    #C75C5C;
+      --color-warning:  #C4A35A;
+      /* === 边框 === */
+      --color-outline:          #E8E6E3;
+      --color-outline-variant:  #D4D0CA;
+      /* === 五行专属色 === */
+      --color-wuxing-jin:  #C9A96E;
+      --color-wuxing-mu:   #5B8C5A;
+      --color-wuxing-shui: #4A7FB5;
+      --color-wuxing-huo:  #C75C5C;
+      --color-wuxing-tu:   #C4A35A;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.06);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.10);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+      --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- 简化版导航：返回按钮 + 标题 + 分享图标 -->
+  <header class="bg-surface sticky top-0 z-40 border-b border-outline-variant/20">
+    <div class="max-w-4xl mx-auto h-14 flex items-center justify-between px-5">
+      <a href="name-result.html" id="nav-back" class="flex items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+      </a>
+      <span class="font-semibold text-base text-on-surface">名字解读</span>
+      <button id="nav-share" class="flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
+        <i data-lucide="share-2" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-5 py-8 space-y-6 pb-28">
+
+    <!-- 名字标题区 -->
+    <section id="name-title-card" class="bg-surface shadow-card rounded-xl p-6 text-center">
+      <!-- 名字大字 -->
+      <h1 id="name-display" class="font-serif font-bold text-[36px] tracking-[0.3em] text-on-surface mb-5">张 悦 宁</h1>
+      <!-- 每字五行 -->
+      <div id="name-wuxing-row" class="flex items-center justify-center gap-8 mb-5">
+        <!-- 张 - 木 -->
+        <div class="flex flex-col items-center gap-1">
+          <span class="text-sm font-medium text-on-surface">张</span>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-wuxing-mu"></span>
+            <span class="text-xs text-wuxing-mu font-medium">木</span>
+          </div>
+        </div>
+        <!-- 悦 - 火 -->
+        <div class="flex flex-col items-center gap-1">
+          <span class="text-sm font-medium text-on-surface">悦</span>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-wuxing-huo"></span>
+            <span class="text-xs text-wuxing-huo font-medium">火</span>
+          </div>
+        </div>
+        <!-- 宁 - 火 -->
+        <div class="flex flex-col items-center gap-1">
+          <span class="text-sm font-medium text-on-surface">宁</span>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-wuxing-huo"></span>
+            <span class="text-xs text-wuxing-huo font-medium">火</span>
+          </div>
+        </div>
+      </div>
+      <!-- 三列指标 -->
+      <div id="name-indicators" class="grid grid-cols-3 gap-3">
+        <div class="bg-surface-container rounded-md py-3 px-2 text-center">
+          <div class="text-2xl font-bold text-primary">92</div>
+          <div class="text-xs text-on-surface-variant mt-0.5">综合分</div>
+        </div>
+        <div class="bg-surface-container rounded-md py-3 px-2 text-center">
+          <div class="text-lg font-bold text-success">吉</div>
+          <div class="text-xs text-on-surface-variant mt-0.5">三才</div>
+        </div>
+        <div class="bg-surface-container rounded-md py-3 px-2 text-center">
+          <div class="text-sm font-semibold text-on-surface">静谧</div>
+          <div class="text-xs text-on-surface-variant mt-0.5">寓意</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 五行补益分析卡片 -->
+    <section id="wuxing-card" class="bg-surface shadow-card rounded-xl p-5 space-y-4">
+      <h2 id="wuxing-title" class="text-base font-semibold text-on-surface flex items-center gap-2">
+        <i data-lucide="flame" class="w-4 h-4 text-wuxing-huo"></i>
+        五行补益分析
+      </h2>
+      <!-- 喜用神标签 -->
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-on-surface-variant">喜用神：</span>
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-wuxing-shui/10 text-wuxing-shui text-xs font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-wuxing-shui"></span>水
+        </span>
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-wuxing-mu/10 text-wuxing-mu text-xs font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>木
+        </span>
+      </div>
+      <!-- 逐字解读 -->
+      <div id="wuxing-char-analysis" class="space-y-2">
+        <!-- 列表-逐字解读1 -->
+        <div class="flex items-start gap-2 text-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-wuxing-huo mt-1.5 shrink-0"></span>
+          <span class="text-on-surface"><span class="font-semibold">"悦"</span>字五行属<span class="text-wuxing-huo font-medium">火</span>，心字旁从心，取欢悦畅达之意</span>
+        </div>
+        <!-- 列表-逐字解读2 -->
+        <div class="flex items-start gap-2 text-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-wuxing-huo mt-1.5 shrink-0"></span>
+          <span class="text-on-surface"><span class="font-semibold">"宁"</span>字五行属<span class="text-wuxing-huo font-medium">火</span>，宀部从宀，取安宁平和之意</span>
+        </div>
+      </div>
+      <!-- 整体分析 -->
+      <div class="bg-surface-container rounded-md p-3">
+        <p id="wuxing-summary" class="text-sm text-on-surface leading-relaxed">
+          名字整体<span class="text-wuxing-huo font-medium">火旺</span>，与喜用神<span class="text-wuxing-shui font-medium">水</span><span class="text-wuxing-mu font-medium">木</span>形成相生关系：<span class="text-wuxing-mu font-medium">木生火</span>，木为喜用神可源源不断生助名字中的火，水虽克火但可润木，形成水→木→火顺生格局。
+        </p>
+      </div>
+      <!-- 补益路径可视化 -->
+      <div id="wuxing-path" class="flex items-center justify-center gap-2 py-3">
+        <!-- 木(喜) -->
+        <div class="flex flex-col items-center gap-1">
+          <span class="w-8 h-8 rounded-full bg-wuxing-mu/15 flex items-center justify-center">
+            <span class="w-3.5 h-3.5 rounded-full bg-wuxing-mu"></span>
+          </span>
+          <span class="text-xs text-wuxing-mu font-medium">木(喜)</span>
+        </div>
+        <!-- 箭头 -->
+        <div class="flex flex-col items-center">
+          <span class="text-on-surface-variant/50 text-lg">→</span>
+          <span class="text-[10px] text-on-surface-variant">生</span>
+        </div>
+        <!-- 火(名) -->
+        <div class="flex flex-col items-center gap-1">
+          <span class="w-8 h-8 rounded-full bg-wuxing-huo/15 flex items-center justify-center">
+            <span class="w-3.5 h-3.5 rounded-full bg-wuxing-huo"></span>
+          </span>
+          <span class="text-xs text-wuxing-huo font-medium">火(名)</span>
+        </div>
+        <!-- 箭头 -->
+        <div class="flex flex-col items-center">
+          <span class="text-on-surface-variant/50 text-lg">→</span>
+          <span class="text-[10px] text-on-surface-variant">生</span>
+        </div>
+        <!-- 土(生) -->
+        <div class="flex flex-col items-center gap-1">
+          <span class="w-8 h-8 rounded-full bg-wuxing-tu/15 flex items-center justify-center">
+            <span class="w-3.5 h-3.5 rounded-full bg-wuxing-tu"></span>
+          </span>
+          <span class="text-xs text-wuxing-tu font-medium">土(生)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 诗词出处卡片 -->
+    <section id="poem-card" class="bg-surface shadow-card rounded-xl p-5 space-y-4">
+      <h2 id="poem-title" class="text-base font-semibold text-on-surface flex items-center gap-2">
+        <i data-lucide="book-open" class="w-4 h-4 text-primary"></i>
+        诗词出处
+      </h2>
+      <div id="poem-content" class="space-y-3">
+        <!-- 书名 -->
+        <p class="font-serif italic text-sm text-primary font-medium">《诗经·郑风》</p>
+        <!-- 诗句 -->
+        <blockquote class="border-l-2 border-primary/30 pl-4">
+          <p class="font-serif italic text-sm text-on-surface-variant leading-relaxed">
+            风雨潇潇，鸡鸣胶胶。<br/>既见君子，云胡不瘳。
+          </p>
+        </blockquote>
+        <!-- 释义 -->
+        <div class="bg-surface-container rounded-md p-3 space-y-1.5">
+          <!-- 列表-释义1 -->
+          <p class="text-sm text-on-surface">
+            <span class="font-semibold">"宁"</span>取<span class="text-primary font-medium">"安宁"</span>之意，寓意生活安宁、内心平和
+          </p>
+          <!-- 列表-释义2 -->
+          <p class="text-sm text-on-surface">
+            <span class="font-semibold">"悦"</span>取<span class="text-primary font-medium">"喜悦"</span>之意，寓意心情愉悦、开朗豁达
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 多维度评分卡片 -->
+    <section id="score-card" class="bg-surface shadow-card rounded-xl p-5 space-y-4">
+      <h2 id="score-title" class="text-base font-semibold text-on-surface flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 text-primary"></i>
+        多维度评分
+      </h2>
+      <div id="score-list" class="space-y-3">
+        <!-- 列表-评分项1 -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-sm text-on-surface w-24 shrink-0">喜用神匹配</span>
+          <div class="flex items-center gap-0.5 flex-1 justify-center">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-outline"></i>
+          </div>
+          <span class="text-sm font-semibold text-primary w-10 text-right">85</span>
+        </div>
+        <!-- 列表-评分项2 -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-sm text-on-surface w-24 shrink-0">三才五格</span>
+          <div class="flex items-center gap-0.5 flex-1 justify-center">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-outline"></i>
+          </div>
+          <span class="text-sm font-semibold text-primary w-10 text-right">90</span>
+        </div>
+        <!-- 列表-评分项3 -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-sm text-on-surface w-24 shrink-0">音韵和谐</span>
+          <div class="flex items-center gap-0.5 flex-1 justify-center">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+          </div>
+          <span class="text-sm font-semibold text-primary w-10 text-right">95</span>
+        </div>
+        <!-- 列表-评分项4 -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-sm text-on-surface w-24 shrink-0">寓意深度</span>
+          <div class="flex items-center gap-0.5 flex-1 justify-center">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-outline"></i>
+          </div>
+          <span class="text-sm font-semibold text-primary w-10 text-right">88</span>
+        </div>
+        <!-- 列表-评分项5 -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-sm text-on-surface w-24 shrink-0">重名风险</span>
+          <div class="flex items-center gap-0.5 flex-1 justify-center">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-outline"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-outline"></i>
+          </div>
+          <span class="text-sm font-medium text-on-surface-variant w-10 text-right">低</span>
+        </div>
+        <!-- 列表-评分项6 -->
+        <div class="flex items-center justify-between py-1">
+          <span class="text-sm text-on-surface w-24 shrink-0">谐音检测</span>
+          <div class="flex items-center gap-0.5 flex-1 justify-center">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+            <i data-lucide="star" class="w-3.5 h-3.5 text-accent fill-accent"></i>
+          </div>
+          <span class="text-sm font-medium text-on-surface-variant w-10 text-right">无风险</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部操作栏 -->
+  <div id="bottom-bar" class="fixed bottom-0 left-0 right-0 bg-surface border-t border-outline-variant/20 z-40">
+    <div class="max-w-4xl mx-auto px-5 py-3">
+      <div class="flex items-center gap-3">
+        <button id="btn-favorite" class="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-md bg-surface-container text-on-surface text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all">
+          <i data-lucide="heart" class="w-4 h-4"></i>
+          <span id="btn-favorite-text">收藏</span>
+        </button>
+        <button id="btn-copy" class="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-md bg-primary text-on-primary text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all">
+          <i data-lucide="copy" class="w-4 h-4"></i>
+          复制名字
+        </button>
+      </div>
+      <p id="compliance-note" class="text-[10px] text-on-surface-variant/60 text-center mt-2">以上内容由AI生成，仅供传统文化参考</p>
+    </div>
+  </div>
+  <!-- @main-content:end -->
+
+  <script>
+    $(function() {
+      // 收藏按钮 - 切换收藏状态
+      $('#btn-favorite').on('click', function() {
+        var $btn = $(this);
+        var $text = $('#btn-favorite-text');
+        var $icon = $btn.find('i');
+        if ($btn.data('favorited')) {
+          // 取消收藏
+          $btn.data('favorited', false);
+          $text.text('收藏');
+          $icon.attr('data-lucide', 'heart');
+          $btn.removeClass('bg-accent-container text-accent').addClass('bg-surface-container text-on-surface');
+          lucide.createIcons();
+        } else {
+          // 收藏
+          $btn.data('favorited', true);
+          $text.text('已收藏');
+          $icon.attr('data-lucide', 'heart');
+          $btn.removeClass('bg-surface-container text-on-surface').addClass('bg-accent-container text-accent');
+          lucide.createIcons();
+        }
+      });
+
+      // 复制按钮 - 复制名字到剪贴板
+      $('#btn-copy').on('click', function() {
+        var nameText = '张悦宁';
+        // 后续应实现：调用 navigator.clipboard.writeText() 将名字复制到剪贴板
+        // 1. 使用 Clipboard API 复制文字
+        // 2. 成功后显示"已复制"提示（toast 或按钮文字临时变更）
+        // 3. 2秒后恢复按钮原始文字
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(nameText).then(function() {
+            var $btn = $('#btn-copy');
+            var origText = $btn.html();
+            $btn.html('<i data-lucide="check" class="w-4 h-4"></i>已复制');
+            lucide.createIcons();
+            setTimeout(function() {
+              $btn.html(origText);
+              lucide.createIcons();
+            }, 2000);
+          });
+        } else {
+          console.log('需要调用剪贴板API复制名字：' + nameText);
+        }
+      });
+
+      // 分享按钮 - 调用分享功能
+      $('#nav-share').on('click', function() {
+        // 后续应实现：
+        // 1. 调用 Web Share API（navigator.share）分享名字解读内容
+        // 2. 若浏览器不支持，则显示分享弹窗（微信、复制链接等选项）
+        // 3. 分享内容包含名字、评分和关键解读信息
+        console.log('需要调用分享功能，分享当前名字解读页面');
+      });
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

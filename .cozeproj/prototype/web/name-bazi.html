@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;600&family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #4A6FA5;
+      --color-primary-container:    #D4DFEF;
+      --color-on-primary:           #ffffff;
+      --color-secondary:            #5B9EA6;
+      --color-secondary-container:  #D4ECF0;
+      --color-on-secondary:         #ffffff;
+      --color-accent:               #C75C5C;
+      --color-accent-container:     #F5DCDC;
+      --color-on-accent:            #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #FAF9F7;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFFFF;
+      --color-surface-container:          #F5F3F0;
+      --color-surface-container-high:     #EDE9E3;
+      --color-surface-container-highest:  #E8E6E3;
+      /* === 文字 === */
+      --color-on-surface:           #1A1A1A;
+      --color-on-surface-variant:   #666666;
+      /* === 功能色 === */
+      --color-success:  #5B8C5A;
+      --color-error:    #C75C5C;
+      --color-warning:  #C4A35A;
+      /* === 边框 === */
+      --color-outline:          #E8E6E3;
+      --color-outline-variant:  #D4D0CA;
+      /* === 五行专属色 === */
+      --color-wuxing-jin:  #C9A96E;
+      --color-wuxing-mu:   #5B8C5A;
+      --color-wuxing-shui: #4A7FB5;
+      --color-wuxing-huo:  #C75C5C;
+      --color-wuxing-tu:   #C4A35A;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.06);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.10);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+      --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+
+    /* 四柱淡入动画 */
+    @keyframes columnFadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .column-fade-in {
+      animation: columnFadeIn 0.5s ease-out forwards;
+      opacity: 0;
+    }
+    .column-delay-1 { animation-delay: 0.1s; }
+    .column-delay-2 { animation-delay: 0.25s; }
+    .column-delay-3 { animation-delay: 0.4s; }
+    .column-delay-4 { animation-delay: 0.55s; }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- 简化版导航：返回按钮 + 标题 -->
+  <header class="bg-surface sticky top-0 z-40 border-b border-outline-variant/20">
+    <div class="max-w-4xl mx-auto h-14 flex items-center justify-between px-5">
+      <a href="name-input.html" id="nav-back" class="flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface transition-colors">
+        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        <span class="text-sm">返回</span>
+      </a>
+      <h1 class="text-base font-semibold text-on-surface">排盘结果 <span class="text-on-surface-variant font-normal text-sm">[2/4]</span></h1>
+      <div class="w-16"></div>
+    </div>
+  </header>
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-5 py-6">
+
+    <!-- 步骤指示器 -->
+    <div id="step-indicator" class="flex items-center justify-center gap-0 mb-8">
+      <!-- 步骤1：输入 - 已完成 -->
+      <div class="flex items-center gap-1.5">
+        <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+          <i data-lucide="check" class="w-3.5 h-3.5 text-on-primary"></i>
+        </div>
+        <span class="text-xs font-medium text-primary">输入</span>
+      </div>
+      <!-- 连接线 -->
+      <div class="w-10 h-0.5 bg-primary mx-1"></div>
+      <!-- 步骤2：排盘 - 当前 -->
+      <div class="flex items-center gap-1.5">
+        <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+          <span class="text-xs font-semibold text-on-primary">2</span>
+        </div>
+        <span class="text-xs font-semibold text-primary">排盘</span>
+      </div>
+      <!-- 连接线 -->
+      <div class="w-10 h-0.5 bg-outline-variant mx-1"></div>
+      <!-- 步骤3：起名 - 未完成 -->
+      <div class="flex items-center gap-1.5">
+        <div class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center">
+          <span class="text-xs font-medium text-on-surface-variant">3</span>
+        </div>
+        <span class="text-xs font-medium text-on-surface-variant">起名</span>
+      </div>
+      <!-- 连接线 -->
+      <div class="w-10 h-0.5 bg-outline-variant mx-1"></div>
+      <!-- 步骤4：结果 - 未完成 -->
+      <div class="flex items-center gap-1.5">
+        <div class="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center">
+          <span class="text-xs font-medium text-on-surface-variant">4</span>
+        </div>
+        <span class="text-xs font-medium text-on-surface-variant">结果</span>
+      </div>
+    </div>
+
+    <!-- ==================== 四柱八字命盘卡片 ==================== -->
+    <div id="bazi-card" class="bg-surface shadow-card rounded-xl p-6 mb-6">
+      <!-- 卡片标题 -->
+      <div class="flex items-center gap-2 mb-5">
+        <i data-lucide="scan-line" class="w-4.5 h-4.5 text-primary"></i>
+        <h2 class="text-base font-semibold text-on-surface font-serif">张某某 · 八字命盘</h2>
+      </div>
+
+      <!-- 四柱表格 -->
+      <div class="grid grid-cols-4 gap-3">
+        <!-- 年柱 -->
+        <div class="column-fade-in column-delay-1 text-center p-3 bg-surface-container rounded-lg">
+          <div class="text-xs font-medium text-on-surface-variant mb-3">年柱</div>
+          <div class="font-mono text-2xl font-semibold text-on-surface tracking-wide mb-2.5">庚午</div>
+          <div class="flex items-center justify-center gap-1 mb-2">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-jin"></span>
+            <span class="text-xs text-on-surface-variant">金</span>
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-huo ml-1.5"></span>
+            <span class="text-xs text-on-surface-variant">火</span>
+          </div>
+          <div class="text-xs text-on-surface-variant/70">丁己</div>
+        </div>
+
+        <!-- 月柱 -->
+        <div class="column-fade-in column-delay-2 text-center p-3 bg-surface-container rounded-lg">
+          <div class="text-xs font-medium text-on-surface-variant mb-3">月柱</div>
+          <div class="font-mono text-2xl font-semibold text-on-surface tracking-wide mb-2.5">辛巳</div>
+          <div class="flex items-center justify-center gap-1 mb-2">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-jin"></span>
+            <span class="text-xs text-on-surface-variant">金</span>
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-huo ml-1.5"></span>
+            <span class="text-xs text-on-surface-variant">火</span>
+          </div>
+          <div class="text-xs text-on-surface-variant/70">庚丙戊</div>
+        </div>
+
+        <!-- 日柱 -->
+        <div class="column-fade-in column-delay-3 text-center p-3 bg-surface-container rounded-lg">
+          <div class="text-xs font-medium text-on-surface-variant mb-3">日柱</div>
+          <div class="font-mono text-2xl font-semibold text-on-surface tracking-wide mb-2.5">甲子</div>
+          <div class="flex items-center justify-center gap-1 mb-2">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+            <span class="text-xs text-on-surface-variant">木</span>
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-shui ml-1.5"></span>
+            <span class="text-xs text-on-surface-variant">水</span>
+          </div>
+          <div class="text-xs text-on-surface-variant/70">癸</div>
+        </div>
+
+        <!-- 时柱 -->
+        <div class="column-fade-in column-delay-4 text-center p-3 bg-surface-container rounded-lg">
+          <div class="text-xs font-medium text-on-surface-variant mb-3">时柱</div>
+          <div class="font-mono text-2xl font-semibold text-on-surface tracking-wide mb-2.5">丙寅</div>
+          <div class="flex items-center justify-center gap-1 mb-2">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-huo"></span>
+            <span class="text-xs text-on-surface-variant">火</span>
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-wuxing-mu ml-1.5"></span>
+            <span class="text-xs text-on-surface-variant">木</span>
+          </div>
+          <div class="text-xs text-on-surface-variant/70">甲丙戊</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 五行分布区域 ==================== -->
+    <div id="wuxing-distribution" class="bg-surface shadow-card rounded-xl p-6 mb-6">
+      <!-- 标题 -->
+      <div class="flex items-center gap-2 mb-5">
+        <i data-lucide="bar-chart-3" class="w-4.5 h-4.5 text-primary"></i>
+        <h2 class="text-base font-semibold text-on-surface">五行分布</h2>
+      </div>
+
+      <!-- 条形图 -->
+      <div class="space-y-3.5">
+        <!-- 金 30% -->
+        <div class="flex items-center gap-3">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-jin shrink-0"></span>
+          <span class="text-sm font-medium text-on-surface w-6 shrink-0">金</span>
+          <div class="flex-1 h-5 bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-wuxing-jin rounded-full transition-all duration-700" style="width: 30%"></div>
+          </div>
+          <span class="text-sm font-semibold text-on-surface w-10 text-right shrink-0">30%</span>
+        </div>
+
+        <!-- 木 15% -->
+        <div class="flex items-center gap-3">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-mu shrink-0"></span>
+          <span class="text-sm font-medium text-on-surface w-6 shrink-0">木</span>
+          <div class="flex-1 h-5 bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-wuxing-mu rounded-full transition-all duration-700" style="width: 15%"></div>
+          </div>
+          <span class="text-sm font-semibold text-on-surface w-10 text-right shrink-0">15%</span>
+        </div>
+
+        <!-- 水 20% -->
+        <div class="flex items-center gap-3">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-shui shrink-0"></span>
+          <span class="text-sm font-medium text-on-surface w-6 shrink-0">水</span>
+          <div class="flex-1 h-5 bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-wuxing-shui rounded-full transition-all duration-700" style="width: 20%"></div>
+          </div>
+          <span class="text-sm font-semibold text-on-surface w-10 text-right shrink-0">20%</span>
+        </div>
+
+        <!-- 火 35% -->
+        <div class="flex items-center gap-3">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-huo shrink-0"></span>
+          <span class="text-sm font-medium text-on-surface w-6 shrink-0">火</span>
+          <div class="flex-1 h-5 bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-wuxing-huo rounded-full transition-all duration-700" style="width: 35%"></div>
+          </div>
+          <span class="text-sm font-semibold text-on-surface w-10 text-right shrink-0">35%</span>
+        </div>
+
+        <!-- 土 0% -->
+        <div class="flex items-center gap-3">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-tu shrink-0"></span>
+          <span class="text-sm font-medium text-on-surface w-6 shrink-0">土</span>
+          <div class="flex-1 h-5 bg-surface-container rounded-full overflow-hidden">
+            <div class="h-full bg-wuxing-tu/30 rounded-full transition-all duration-700" style="width: 2%"></div>
+          </div>
+          <span class="text-sm font-semibold text-on-surface-variant w-10 text-right shrink-0">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 喜用神分析区域 ==================== -->
+    <div id="xiyong-card" class="bg-surface shadow-card rounded-xl p-6 mb-6">
+      <!-- 标题 -->
+      <div class="flex items-center gap-2 mb-5">
+        <i data-lucide="sparkles" class="w-4.5 h-4.5 text-primary"></i>
+        <h2 class="text-base font-semibold text-on-surface">喜用神分析</h2>
+      </div>
+
+      <!-- 格局标签 -->
+      <div class="mb-4">
+        <span id="pattern-tag" class="inline-flex items-center px-3 py-1 rounded-md text-sm font-semibold bg-primary/10 text-primary">食神格</span>
+      </div>
+
+      <!-- 日主分析 -->
+      <div class="mb-5">
+        <div class="text-xs font-medium text-on-surface-variant mb-1.5">日主分析</div>
+        <p class="text-sm text-on-surface leading-relaxed">日主甲木偏弱，食伤生财。甲木生于巳月，火旺木泄，需水生木、木扶身以平衡命局。</p>
+      </div>
+
+      <!-- 喜用神 -->
+      <div class="mb-4">
+        <div class="text-xs font-medium text-on-surface-variant mb-2">喜用神</div>
+        <div class="flex items-center gap-3">
+          <!-- 喜用神-水 -->
+          <div class="flex items-center gap-2 px-4 py-2.5 bg-wuxing-shui/10 border border-wuxing-shui/20 rounded-lg">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-shui"></span>
+            <span class="text-lg font-bold text-wuxing-shui font-serif">水</span>
+          </div>
+          <!-- 喜用神-木 -->
+          <div class="flex items-center gap-2 px-4 py-2.5 bg-wuxing-mu/10 border border-wuxing-mu/20 rounded-lg">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-mu"></span>
+            <span class="text-lg font-bold text-wuxing-mu font-serif">木</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 忌神 -->
+      <div class="mb-5">
+        <div class="text-xs font-medium text-on-surface-variant mb-2">忌神</div>
+        <div class="flex items-center gap-3">
+          <!-- 忌神-金 -->
+          <div class="flex items-center gap-2 px-4 py-2.5 bg-surface-container rounded-lg">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-jin/40"></span>
+            <span class="text-lg font-bold text-on-surface-variant/50 font-serif">金</span>
+          </div>
+          <!-- 忌神-土 -->
+          <div class="flex items-center gap-2 px-4 py-2.5 bg-surface-container rounded-lg">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-wuxing-tu/40"></span>
+            <span class="text-lg font-bold text-on-surface-variant/50 font-serif">土</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 差异化提示框 -->
+      <div id="insight-tip" class="flex items-start gap-2.5 p-3.5 bg-secondary/10 border border-secondary/20 rounded-lg">
+        <i data-lucide="info" class="w-4 h-4 text-secondary shrink-0 mt-0.5"></i>
+        <p class="text-xs text-on-surface leading-relaxed">不是简单"缺啥补啥"，而是基于<strong class="text-on-surface">格局分析 + 扶抑调候</strong>的综合判断。起名时优先补喜用神五行，而非单纯补缺。</p>
+      </div>
+    </div>
+
+    <!-- ==================== 合规标识 ==================== -->
+    <div id="compliance" class="text-center mb-6">
+      <p class="text-xs text-on-surface-variant/60">以上内容由AI生成，仅供传统文化参考</p>
+    </div>
+
+    <!-- ==================== 底部按钮 ==================== -->
+    <div id="action-area" class="pb-4">
+      <a href="name-preference.html" id="btn-next-step"
+         class="flex items-center justify-center gap-2 w-full bg-primary text-on-primary px-6 py-3 rounded-lg text-sm font-semibold
+                hover:opacity-90 active:scale-[0.98] transition-all">
+        下一步：起名偏好
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+    </div>
+
+  </main>
+  <!-- @main-content:end -->
+
+  <script>
+    $(function () {
+      // 创建 Lucide 图标
+      lucide.createIcons();
+
+      // 五行条形图动画：页面加载后延迟触发宽度动画
+      // 条形图初始宽度已通过 inline style 设定，CSS transition 自动生效
+      // 若需重新触发动画，可调用此函数：
+      // function animateBars() {
+      //   $('#wuxing-distribution .bg-wuxing-jin, #wuxing-distribution .bg-wuxing-mu, #wuxing-distribution .bg-wuxing-shui, #wuxing-distribution .bg-wuxing-huo, #wuxing-distribution .bg-wuxing-tu\\/30')
+      //     .css('width', '0')
+      //     .delay(300)
+      //     .queue(function(next) { $(this).css('width', ''); next(); });
+      // }
+
+      // 喜用神标签点击 - 显示简要解释
+      $('#xiyong-card').on('click', '#pattern-tag', function () {
+        // 后续可实现：点击格局标签弹出格局详细说明弹窗
+        // 1. 展示食神格的完整定义和特征
+        // 2. 说明此格局对命主的影响
+        // 3. 关联喜用神的选取逻辑
+        console.log('格局详情：食神格');
+      });
+
+      // 提示框点击 - 展开更多说明
+      $('#insight-tip').on('click', function () {
+        // 后续可实现：点击提示框展开更详细的分析说明
+        // 1. 解释格局分析法与简单补缺法的区别
+        // 2. 列举此命局的分析推理过程
+        // 3. 说明起名补五行的方法论
+        console.log('查看详细分析方法说明');
+      });
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

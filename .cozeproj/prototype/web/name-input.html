@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;600&family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #4A6FA5;
+      --color-primary-container:    #D4DFEF;
+      --color-on-primary:           #ffffff;
+      --color-secondary:            #5B9EA6;
+      --color-secondary-container:  #D4ECF0;
+      --color-on-secondary:         #ffffff;
+      --color-accent:               #C75C5C;
+      --color-accent-container:     #F5DCDC;
+      --color-on-accent:            #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #FAF9F7;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFFFF;
+      --color-surface-container:          #F5F3F0;
+      --color-surface-container-high:     #EDE9E3;
+      --color-surface-container-highest:  #E8E6E3;
+      /* === 文字 === */
+      --color-on-surface:           #1A1A1A;
+      --color-on-surface-variant:   #666666;
+      /* === 功能色 === */
+      --color-success:  #5B8C5A;
+      --color-error:    #C75C5C;
+      --color-warning:  #C4A35A;
+      /* === 边框 === */
+      --color-outline:          #E8E6E3;
+      --color-outline-variant:  #D4D0CA;
+      /* === 五行专属色 === */
+      --color-wuxing-jin:  #C9A96E;
+      --color-wuxing-mu:   #5B8C5A;
+      --color-wuxing-shui: #4A7FB5;
+      --color-wuxing-huo:  #C75C5C;
+      --color-wuxing-tu:   #C4A35A;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.06);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.10);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+      --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- 简化版导航：返回按钮 + 标题 + 步骤指示器 -->
+  <header class="bg-surface sticky top-0 z-40 border-b border-outline-variant/20">
+    <div class="max-w-4xl mx-auto h-14 flex items-center justify-between px-5">
+      <!-- 左侧返回 + 标题 -->
+      <div class="flex items-center gap-3">
+        <a href="home.html" id="btn-back" class="flex items-center justify-center w-8 h-8 rounded-md hover:bg-surface-container transition-colors">
+          <i data-lucide="arrow-left" class="w-4.5 h-4.5 text-on-surface"></i>
+        </a>
+        <h1 class="text-sm font-semibold text-on-surface">基本信息 <span class="text-on-surface-variant font-normal">[1/4]</span></h1>
+      </div>
+      <!-- 右侧步骤指示器 -->
+      <div id="step-indicator" class="flex items-center gap-0">
+        <!-- 步骤1-输入：当前步骤，高亮 -->
+        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-on-primary text-xs font-semibold" title="输入">1</div>
+        <div class="w-6 h-0.5 bg-primary"></div>
+        <!-- 步骤2-排盘：未完成 -->
+        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium" title="排盘">2</div>
+        <div class="w-6 h-0.5 bg-outline-variant/30"></div>
+        <!-- 步骤3-起名：未完成 -->
+        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium" title="起名">3</div>
+        <div class="w-6 h-0.5 bg-outline-variant/30"></div>
+        <!-- 步骤4-结果：未完成 -->
+        <div class="flex items-center justify-center w-6 h-6 rounded-full bg-surface-container text-on-surface-variant text-xs font-medium" title="结果">4</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-5 py-6 pb-28">
+    <!-- 步骤标签说明 -->
+    <div class="flex items-center justify-between mb-8 px-1">
+      <span class="text-xs font-medium text-primary">输入信息</span>
+      <span class="text-xs text-on-surface-variant">排盘分析</span>
+      <span class="text-xs text-on-surface-variant">AI起名</span>
+      <span class="text-xs text-on-surface-variant">查看结果</span>
+    </div>
+
+    <!-- 表单区域 -->
+    <div class="space-y-4">
+
+      <!-- 姓氏输入 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="block text-sm font-semibold text-on-surface mb-1.5">
+          姓氏 <span class="text-error">*</span>
+        </label>
+        <input id="input-surname" type="text" placeholder="请输入姓氏" maxlength="2"
+               class="w-full bg-surface-container border-none rounded-md px-3 py-2.5 text-sm
+                      text-on-surface placeholder:text-on-surface-variant/50
+                      focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" />
+        <p id="surname-error" class="text-xs text-error mt-1 hidden">请输入1-2个中文汉字</p>
+      </div>
+
+      <!-- 性别选择 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="block text-sm font-semibold text-on-surface mb-2.5">
+          性别 <span class="text-error">*</span>
+        </label>
+        <div class="flex gap-3">
+          <!-- 性别选项-男 -->
+          <button id="gender-male" type="button"
+                  class="flex-1 py-2.5 rounded-lg text-sm font-medium bg-primary text-on-primary
+                         transition-all active:scale-[0.98]">
+            <i data-lucide="user" class="w-4 h-4 inline-block mr-1 align-text-bottom"></i>男
+          </button>
+          <!-- 性别选项-女 -->
+          <button id="gender-female" type="button"
+                  class="flex-1 py-2.5 rounded-lg text-sm font-medium bg-surface-container text-on-surface-variant
+                         hover:bg-surface-container-high transition-all active:scale-[0.98]">
+            <i data-lucide="user" class="w-4 h-4 inline-block mr-1 align-text-bottom"></i>女
+          </button>
+        </div>
+      </div>
+
+      <!-- 出生日期 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="block text-sm font-semibold text-on-surface mb-1.5">
+          出生日期 <span class="text-error">*</span>
+        </label>
+        <div class="relative">
+          <input id="input-birthdate" type="date" value="2024-03-15"
+                 class="w-full bg-surface-container border-none rounded-md px-3 py-2.5 text-sm
+                        text-on-surface placeholder:text-on-surface-variant/50
+                        focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" />
+        </div>
+      </div>
+
+      <!-- 出生时间 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="block text-sm font-semibold text-on-surface mb-1.5">
+          出生时间 <span class="text-error">*</span>
+        </label>
+        <div class="relative">
+          <input id="input-birthtime" type="time" value="14:30"
+                 class="w-full bg-surface-container border-none rounded-md px-3 py-2.5 text-sm
+                        text-on-surface placeholder:text-on-surface-variant/50
+                        focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" />
+        </div>
+        <!-- 不确定时辰复选框 -->
+        <label class="flex items-center gap-2 mt-2.5 cursor-pointer">
+          <input id="checkbox-uncertain-time" type="checkbox" class="w-4 h-4 rounded accent-primary" />
+          <span class="text-xs text-on-surface-variant">不确定具体时辰</span>
+        </label>
+      </div>
+
+      <!-- 出生地 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="block text-sm font-semibold text-on-surface mb-1.5">
+          出生地
+        </label>
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <i data-lucide="map-pin" class="w-4 h-4 text-on-surface-variant absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <select id="select-province"
+                    class="w-full bg-surface-container border-none rounded-md pl-9 pr-3 py-2.5 text-sm
+                           text-on-surface appearance-none
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+              <option value="">省份</option>
+              <!-- 选项-北京 -->
+              <option value="北京市">北京市</option>
+              <!-- 选项-上海 -->
+              <option value="上海市">上海市</option>
+              <!-- 选项-广东 -->
+              <option value="广东省">广东省</option>
+              <!-- 选项-浙江 -->
+              <option value="浙江省">浙江省</option>
+              <!-- 选项-江苏 -->
+              <option value="江苏省">江苏省</option>
+              <!-- 选项-四川 -->
+              <option value="四川省">四川省</option>
+              <!-- 选项-湖北 -->
+              <option value="湖北省">湖北省</option>
+              <!-- 选项-山东 -->
+              <option value="山东省">山东省</option>
+            </select>
+          </div>
+          <div class="relative flex-1">
+            <select id="select-city"
+                    class="w-full bg-surface-container border-none rounded-md px-3 py-2.5 text-sm
+                           text-on-surface appearance-none
+                           focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+              <option value="">城市</option>
+              <!-- 选项-默认城市 -->
+              <option value="朝阳区">朝阳区</option>
+            </select>
+          </div>
+        </div>
+        <p class="text-xs text-on-surface-variant mt-2 flex items-center gap-1">
+          <i data-lucide="info" class="w-3 h-3"></i>
+          选填，用于真太阳时校正
+        </p>
+      </div>
+
+      <!-- 是否已出生 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-sm font-semibold text-on-surface">出生状态</label>
+            <p class="text-xs text-on-surface-variant mt-0.5" id="birth-status-label">宝宝已出生</p>
+          </div>
+          <!-- Toggle 开关 -->
+          <button id="toggle-born" type="button" role="switch" aria-checked="true"
+                  class="relative w-11 h-6 bg-primary rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30">
+            <span id="toggle-thumb" class="absolute top-0.5 left-5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"></span>
+          </button>
+        </div>
+        <!-- 未出生提示条（默认隐藏） -->
+        <div id="unborn-notice" class="hidden mt-3 flex items-start gap-2 bg-warning/10 border border-warning/20 rounded-lg px-3 py-2.5">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-warning shrink-0 mt-0.5"></i>
+          <span class="text-xs text-warning font-medium">宝宝尚未出生，分析结果仅供参考</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 隐私提示 -->
+    <div class="flex items-start gap-2 mt-6 px-1">
+      <i data-lucide="shield-check" class="w-4 h-4 text-on-surface-variant/60 shrink-0 mt-0.5"></i>
+      <p class="text-xs text-on-surface-variant/70 leading-relaxed">您的信息仅用于分析，72小时后自动删除</p>
+    </div>
+  </main>
+  <!-- @main-content:end -->
+
+  <!-- 底部固定按钮 -->
+  <div class="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-sm border-t border-outline-variant/20 z-30">
+    <div class="max-w-4xl mx-auto px-5 py-4">
+      <button id="btn-next" disabled
+              class="w-full bg-primary text-on-primary py-3 rounded-xl text-sm font-semibold
+                     hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2
+                     disabled:opacity-40 disabled:pointer-events-none">
+        下一步：排盘分析
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <script>lucide.createIcons();</script>
+
+  <script>
+  $(function() {
+    // ========== 状态管理 ==========
+    var formState = {
+      surname: '张',       // 默认填充测试数据
+      gender: 'male',      // male | female
+      birthdate: '2024-03-15',
+      birthtime: '14:30',
+      uncertainTime: false,
+      isBorn: true
+    };
+
+    // ========== 姓氏输入 ==========
+    // 姓氏输入-实时校验中文
+    $('#input-surname').on('input', function() {
+      var val = $(this).val();
+      // 只保留中文
+      var cleaned = val.replace(/[^\u4e00-\u9fa5]/g, '');
+      if (cleaned !== val) {
+        $(this).val(cleaned);
+      }
+      formState.surname = cleaned;
+      validateForm();
+    });
+
+    // 姓氏输入-失焦校验
+    $('#input-surname').on('blur', function() {
+      var val = $(this).val();
+      if (val.length > 0 && (val.length < 1 || val.length > 2 || !/^[\u4e00-\u9fa5]{1,2}$/.test(val))) {
+        $('#surname-error').removeClass('hidden');
+      } else {
+        $('#surname-error').addClass('hidden');
+      }
+    });
+
+    // ========== 性别选择 ==========
+    // 性别选择-男
+    $('#gender-male').on('click', function() {
+      formState.gender = 'male';
+      $(this).removeClass('bg-surface-container text-on-surface-variant')
+             .addClass('bg-primary text-on-primary');
+      $('#gender-female').removeClass('bg-primary text-on-primary')
+                        .addClass('bg-surface-container text-on-surface-variant');
+    });
+
+    // 性别选择-女
+    $('#gender-female').on('click', function() {
+      formState.gender = 'female';
+      $(this).removeClass('bg-surface-container text-on-surface-variant')
+             .addClass('bg-primary text-on-primary');
+      $('#gender-male').removeClass('bg-primary text-on-primary')
+                      .addClass('bg-surface-container text-on-surface-variant');
+    });
+
+    // ========== 出生日期 ==========
+    $('#input-birthdate').on('change', function() {
+      formState.birthdate = $(this).val();
+      validateForm();
+    });
+
+    // ========== 出生时间 ==========
+    $('#input-birthtime').on('change', function() {
+      formState.birthtime = $(this).val();
+      validateForm();
+    });
+
+    // 不确定时辰复选框
+    $('#checkbox-uncertain-time').on('change', function() {
+      formState.uncertainTime = $(this).is(':checked');
+      if (formState.uncertainTime) {
+        $('#input-birthtime').val('').prop('disabled', true);
+        formState.birthtime = '';
+      } else {
+        $('#input-birthtime').prop('disabled', false).val('14:30');
+        formState.birthtime = '14:30';
+      }
+      validateForm();
+    });
+
+    // ========== 出生地-省市联动 ==========
+    // 省市联动 mock 数据
+    var cityData = {
+      '北京市': ['东城区', '西城区', '朝阳区', '海淀区', '丰台区', '通州区'],
+      '上海市': ['黄浦区', '徐汇区', '长宁区', '静安区', '浦东新区', '虹口区'],
+      '广东省': ['广州市', '深圳市', '珠海市', '东莞市', '佛山市', '中山市'],
+      '浙江省': ['杭州市', '宁波市', '温州市', '嘉兴市', '绍兴市', '金华市'],
+      '江苏省': ['南京市', '苏州市', '无锡市', '常州市', '南通市', '扬州市'],
+      '四川省': ['成都市', '绵阳市', '德阳市', '宜宾市', '泸州市', '达州市'],
+      '湖北省': ['武汉市', '宜昌市', '襄阳市', '荆州市', '黄冈市', '十堰市'],
+      '山东省': ['济南市', '青岛市', '烟台市', '潍坊市', '临沂市', '济宁市']
+    };
+
+    $('#select-province').on('change', function() {
+      var province = $(this).val();
+      var $city = $('#select-city');
+      $city.empty().append('<option value="">城市</option>');
+      if (province && cityData[province]) {
+        var cities = cityData[province];
+        for (var i = 0; i < cities.length; i++) {
+          $city.append('<option value="' + cities[i] + '">' + cities[i] + '</option>');
+        }
+      }
+    });
+
+    // ========== 是否已出生 Toggle ==========
+    // Toggle开关-切换出生状态
+    $('#toggle-born').on('click', function() {
+      formState.isBorn = !formState.isBorn;
+      var $thumb = $('#toggle-thumb');
+      if (formState.isBorn) {
+        // 已出生：打开态
+        $(this).attr('aria-checked', 'true').removeClass('bg-surface-container-high').addClass('bg-primary');
+        $thumb.css('left', '1.25rem');
+        $('#birth-status-label').text('宝宝已出生');
+        $('#unborn-notice').addClass('hidden');
+      } else {
+        // 未出生：关闭态
+        $(this).attr('aria-checked', 'false').removeClass('bg-primary').addClass('bg-surface-container-high');
+        $thumb.css('left', '0.125rem');
+        $('#birth-status-label').text('宝宝未出生');
+        $('#unborn-notice').removeClass('hidden');
+      }
+    });
+
+    // ========== 表单校验 ==========
+    function validateForm() {
+      var valid = true;
+      // 姓氏必填，1-2个中文
+      if (!formState.surname || !/^[\u4e00-\u9fa5]{1,2}$/.test(formState.surname)) {
+        valid = false;
+      }
+      // 出生日期必填
+      if (!formState.birthdate) {
+        valid = false;
+      }
+      // 出生时间必填（除非勾选了不确定时辰）
+      if (!formState.uncertainTime && !formState.birthtime) {
+        valid = false;
+      }
+      // 性别必填（默认有值）
+      if (!formState.gender) {
+        valid = false;
+      }
+
+      if (valid) {
+        $('#btn-next').prop('disabled', false);
+      } else {
+        $('#btn-next').prop('disabled', true);
+      }
+    }
+
+    // ========== 下一步按钮 ==========
+    // 下一步按钮-跳转到排盘分析页
+    $('#btn-next').on('click', function() {
+      var surname = formState.surname;
+      var gender = formState.gender;
+      var birthdate = formState.birthdate;
+      var birthtime = formState.uncertainTime ? 'unknown' : formState.birthtime;
+      var isBorn = formState.isBorn;
+      var province = $('#select-province').val() || '';
+      var city = $('#select-city').val() || '';
+      var params = 'surname=' + encodeURIComponent(surname) +
+                   '&gender=' + encodeURIComponent(gender) +
+                   '&birthdate=' + encodeURIComponent(birthdate) +
+                   '&birthtime=' + encodeURIComponent(birthtime) +
+                   '&isBorn=' + isBorn +
+                   '&province=' + encodeURIComponent(province) +
+                   '&city=' + encodeURIComponent(city);
+      window.location.href = 'name-bazi.html?' + params;
+    });
+
+    // ========== 返回按钮 ==========
+    // 返回按钮-返回首页
+    $('#btn-back').on('click', function(e) {
+      // a标签自带href跳转，无需额外处理
+    });
+
+    // ========== 初始化 ==========
+    // 设置默认姓氏
+    $('#input-surname').val(formState.surname);
+    validateForm();
+  });
+  </script>
+</body>
+
+</html>

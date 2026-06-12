@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;600&family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #4A6FA5;
+      --color-primary-container:    #D4DFEF;
+      --color-on-primary:           #ffffff;
+      --color-secondary:            #5B9EA6;
+      --color-secondary-container:  #D4ECF0;
+      --color-on-secondary:         #ffffff;
+      --color-accent:               #C75C5C;
+      --color-accent-container:     #F5DCDC;
+      --color-on-accent:            #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #FAF9F7;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFFFF;
+      --color-surface-container:          #F5F3F0;
+      --color-surface-container-high:     #EDE9E3;
+      --color-surface-container-highest:  #E8E6E3;
+      /* === 文字 === */
+      --color-on-surface:           #1A1A1A;
+      --color-on-surface-variant:   #666666;
+      /* === 功能色 === */
+      --color-success:  #5B8C5A;
+      --color-error:    #C75C5C;
+      --color-warning:  #C4A35A;
+      /* === 边框 === */
+      --color-outline:          #E8E6E3;
+      --color-outline-variant:  #D4D0CA;
+      /* === 五行专属色 === */
+      --color-wuxing-jin:  #C9A96E;
+      --color-wuxing-mu:   #5B8C5A;
+      --color-wuxing-shui: #4A7FB5;
+      --color-wuxing-huo:  #C75C5C;
+      --color-wuxing-tu:   #C4A35A;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.06);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.10);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+      --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @nav:start -->
+  <header class="bg-surface sticky top-0 z-40 border-b border-outline-variant/20">
+    <div class="max-w-4xl mx-auto h-14 flex items-center justify-between px-5">
+      <a href="home.html" class="flex items-center gap-2">
+        <span class="text-primary font-serif font-bold text-lg">起名</span>
+        <span class="text-on-surface-variant text-xs">AI八字起名工具</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="home.html" class="px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 rounded-md" aria-current="page">首页</a>
+        <a href="test-name.html" class="px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">测名</a>
+      </nav>
+    </div>
+  </header>
+  <!-- @nav:end -->
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-5 py-8">
+
+    <!-- Hero 区域 -->
+    <section id="hero-section" class="fade-in-section text-center py-16">
+      <h1 class="font-serif text-4xl font-bold text-on-surface tracking-wide leading-tight">为宝宝起一个好名</h1>
+      <p class="mt-4 text-on-surface-variant text-base leading-relaxed">基于八字喜用神分析 · AI智能生成 + 诗词出处</p>
+      <div class="mt-8">
+        <a id="btn-start-naming" href="name-input.html" class="inline-flex items-center gap-2 bg-primary text-on-primary px-7 py-3 rounded-lg text-base font-medium hover:scale-105 hover:opacity-90 active:scale-[0.98] transition-all shadow-card">
+          开始八字起名
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+      </div>
+      <div class="mt-4">
+        <a id="link-test-name" href="test-name.html" class="text-on-surface-variant text-sm hover:text-primary transition-colors">
+          已有名字？测一测
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 inline-block align-middle"></i>
+        </a>
+      </div>
+    </section>
+
+    <!-- 信任背书卡片 -->
+    <section id="trust-section" class="fade-in-section mt-4">
+      <div class="grid grid-cols-3 gap-5">
+        <!-- 信任卡片-精准排盘 -->
+        <div class="bg-surface rounded-xl shadow-card p-5 text-center">
+          <div class="w-10 h-10 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-3">
+            <i data-lucide="compass" class="w-5 h-5 text-primary"></i>
+          </div>
+          <h3 class="text-base font-semibold text-on-surface">精准排盘</h3>
+          <p class="mt-1.5 text-sm text-on-surface-variant leading-relaxed">规则引擎保证<br>100%准确</p>
+        </div>
+        <!-- 信任卡片-喜用神分析 -->
+        <div class="bg-surface rounded-xl shadow-card p-5 text-center">
+          <div class="w-10 h-10 mx-auto rounded-full bg-secondary/10 flex items-center justify-center mb-3">
+            <i data-lucide="flame" class="w-5 h-5 text-secondary"></i>
+          </div>
+          <h3 class="text-base font-semibold text-on-surface">喜用神分析</h3>
+          <p class="mt-1.5 text-sm text-on-surface-variant leading-relaxed">不只是<br>缺啥补啥</p>
+        </div>
+        <!-- 信任卡片-AI文化释义 -->
+        <div class="bg-surface rounded-xl shadow-card p-5 text-center">
+          <div class="w-10 h-10 mx-auto rounded-full bg-accent/10 flex items-center justify-center mb-3">
+            <i data-lucide="book-open" class="w-5 h-5 text-accent"></i>
+          </div>
+          <h3 class="text-base font-semibold text-on-surface">AI文化释义</h3>
+          <p class="mt-1.5 text-sm text-on-surface-variant leading-relaxed">诗词典故<br>深度解读</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 今日推荐名字 -->
+    <section id="recommend-section" class="fade-in-section mt-12">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-semibold text-on-surface">今日推荐</h2>
+        <span class="text-xs text-on-surface-variant">每日精选好名</span>
+      </div>
+      <div class="grid grid-cols-3 gap-5">
+        <!-- 推荐名字卡片-张悦宁 -->
+        <a id="name-card-yuening" href="name-detail.html?id=yuening" class="block bg-surface rounded-xl shadow-card p-5 hover:-translate-y-1 hover:shadow-float transition-all cursor-pointer">
+          <div class="font-serif text-2xl font-bold text-on-surface text-center">张悦宁</div>
+          <div class="flex items-center justify-center gap-1.5 mt-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-mu/15 text-wuxing-mu">木</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-huo/15 text-wuxing-huo">火</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-huo/15 text-wuxing-huo">火</span>
+          </div>
+          <div class="mt-3 text-center">
+            <span class="font-mono text-2xl font-semibold text-primary">92</span>
+            <span class="text-xs text-on-surface-variant ml-0.5">分</span>
+          </div>
+        </a>
+        <!-- 推荐名字卡片-张泽萱 -->
+        <a id="name-card-zexuan" href="name-detail.html?id=zexuan" class="block bg-surface rounded-xl shadow-card p-5 hover:-translate-y-1 hover:shadow-float transition-all cursor-pointer">
+          <div class="font-serif text-2xl font-bold text-on-surface text-center">张泽萱</div>
+          <div class="flex items-center justify-center gap-1.5 mt-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-shui/15 text-wuxing-shui">水</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-mu/15 text-wuxing-mu">木</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-mu/15 text-wuxing-mu">木</span>
+          </div>
+          <div class="mt-3 text-center">
+            <span class="font-mono text-2xl font-semibold text-primary">88</span>
+            <span class="text-xs text-on-surface-variant ml-0.5">分</span>
+          </div>
+        </a>
+        <!-- 推荐名字卡片-张清越 -->
+        <a id="name-card-qingyue" href="name-detail.html?id=qingyue" class="block bg-surface rounded-xl shadow-card p-5 hover:-translate-y-1 hover:shadow-float transition-all cursor-pointer">
+          <div class="font-serif text-2xl font-bold text-on-surface text-center">张清越</div>
+          <div class="flex items-center justify-center gap-1.5 mt-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-shui/15 text-wuxing-shui">水</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-tu/15 text-wuxing-tu">土</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-wuxing-tu/15 text-wuxing-tu">土</span>
+          </div>
+          <div class="mt-3 text-center">
+            <span class="font-mono text-2xl font-semibold text-primary">85</span>
+            <span class="text-xs text-on-surface-variant ml-0.5">分</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 底部免责声明 -->
+    <footer id="disclaimer-section" class="fade-in-section mt-12 mb-4 text-center">
+      <p class="text-xs text-on-surface-variant/70 leading-relaxed">以上内容仅供传统文化参考，不构成人生决策依据</p>
+    </footer>
+
+  </main>
+  <!-- @main-content:end -->
+
+  <style>
+    /* 淡入动画 */
+    .fade-in-section {
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeInUp 300ms ease-out forwards;
+    }
+    .fade-in-section:nth-of-type(1) { animation-delay: 0ms; }
+    .fade-in-section:nth-of-type(2) { animation-delay: 200ms; }
+    .fade-in-section:nth-of-type(3) { animation-delay: 400ms; }
+    .fade-in-section:nth-of-type(4) { animation-delay: 600ms; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
+  <script>
+    $(function () {
+      // CTA按钮点击 - 跳转到起名输入页
+      $('#btn-start-naming').on('click', function (e) {
+        e.preventDefault();
+        window.location.href = 'name-input.html';
+      });
+
+      // 测名链接点击 - 跳转到测名页
+      $('#link-test-name').on('click', function (e) {
+        e.preventDefault();
+        window.location.href = 'test-name.html';
+      });
+
+      // 名字卡片点击 - 跳转到名字详情页
+      $('#name-card-yuening').on('click', function (e) {
+        e.preventDefault();
+        window.location.href = 'name-detail.html?id=yuening';
+      });
+      $('#name-card-zexuan').on('click', function (e) {
+        e.preventDefault();
+        window.location.href = 'name-detail.html?id=zexuan';
+      });
+      $('#name-card-qingyue').on('click', function (e) {
+        e.preventDefault();
+        window.location.href = 'name-detail.html?id=qingyue';
+      });
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

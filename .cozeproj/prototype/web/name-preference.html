@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;600&family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #4A6FA5;
+      --color-primary-container:    #D4DFEF;
+      --color-on-primary:           #ffffff;
+      --color-secondary:            #5B9EA6;
+      --color-secondary-container:  #D4ECF0;
+      --color-on-secondary:         #ffffff;
+      --color-accent:               #C75C5C;
+      --color-accent-container:     #F5DCDC;
+      --color-on-accent:            #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #FAF9F7;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFFFF;
+      --color-surface-container:          #F5F3F0;
+      --color-surface-container-high:     #EDE9E3;
+      --color-surface-container-highest:  #E8E6E3;
+      /* === 文字 === */
+      --color-on-surface:           #1A1A1A;
+      --color-on-surface-variant:   #666666;
+      /* === 功能色 === */
+      --color-success:  #5B8C5A;
+      --color-error:    #C75C5C;
+      --color-warning:  #C4A35A;
+      /* === 边框 === */
+      --color-outline:          #E8E6E3;
+      --color-outline-variant:  #D4D0CA;
+      /* === 五行专属色 === */
+      --color-wuxing-jin:  #C9A96E;
+      --color-wuxing-mu:   #5B8C5A;
+      --color-wuxing-shui: #4A7FB5;
+      --color-wuxing-huo:  #C75C5C;
+      --color-wuxing-tu:   #C4A35A;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.06);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.10);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+      --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- 简化版导航：返回按钮 + 标题 + 步骤指示器 -->
+  <header class="bg-surface sticky top-0 z-40 border-b border-outline-variant/20">
+    <div class="max-w-4xl mx-auto h-14 flex items-center justify-between px-5">
+      <div class="flex items-center gap-3">
+        <a href="name-bazi.html" id="btn-back" class="flex items-center justify-center w-8 h-8 rounded-md hover:bg-surface-container transition-colors">
+          <i data-lucide="arrow-left" class="w-4 h-4 text-on-surface"></i>
+        </a>
+        <h1 class="text-sm font-semibold text-on-surface">起名偏好 <span class="text-on-surface-variant font-normal">[3/4]</span></h1>
+      </div>
+      <div class="flex items-center gap-0.5" id="step-indicator" aria-label="步骤指示器：第3步">
+        <!-- 步骤1-输入：已完成 -->
+        <div class="w-2 h-2 rounded-full bg-primary" title="输入"></div>
+        <div class="w-6 h-0.5 bg-primary"></div>
+        <!-- 步骤2-排盘：已完成 -->
+        <div class="w-2 h-2 rounded-full bg-primary" title="排盘"></div>
+        <div class="w-6 h-0.5 bg-primary"></div>
+        <!-- 步骤3-起名：当前 -->
+        <div class="w-2.5 h-2.5 rounded-full bg-primary ring-2 ring-primary/30" title="起名（当前）"></div>
+        <div class="w-6 h-0.5 bg-outline-variant"></div>
+        <!-- 步骤4-结果：未完成 -->
+        <div class="w-2 h-2 rounded-full bg-outline-variant" title="结果"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-5 py-8">
+    <div class="max-w-lg mx-auto space-y-6">
+
+      <!-- 步骤文字说明 -->
+      <div class="flex items-center justify-between text-xs text-on-surface-variant px-1">
+        <span class="text-primary font-medium">输入</span>
+        <span class="text-primary font-medium">排盘</span>
+        <span class="text-primary font-semibold">起名</span>
+        <span>结果</span>
+      </div>
+
+      <!-- 喜用神提示条 -->
+      <div id="xiyong-tip" class="bg-secondary/10 rounded-lg p-3 flex items-start gap-2.5">
+        <i data-lucide="sparkles" class="w-4 h-4 text-secondary mt-0.5 shrink-0"></i>
+        <div class="text-sm text-on-surface">
+          <span class="font-medium">喜用神为</span>
+          <span class="text-wuxing-shui font-semibold">水</span>、<span class="text-wuxing-mu font-semibold">木</span>
+          <span class="text-on-surface-variant">，建议名字补水木为佳</span>
+        </div>
+      </div>
+
+      <!-- 名字字数选择 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="text-sm font-semibold text-on-surface block mb-3">名字字数</label>
+        <div id="name-length-group" class="flex gap-3">
+          <!-- 选项-双字名（默认选中） -->
+          <button id="btn-length-double" type="button"
+            class="name-length-btn flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-primary text-on-primary">
+            双字名
+          </button>
+          <!-- 选项-单字名 -->
+          <button id="btn-length-single" type="button"
+            class="name-length-btn flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-surface-container text-on-surface">
+            单字名
+          </button>
+        </div>
+      </div>
+
+      <!-- 名字风格多选 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="text-sm font-semibold text-on-surface block mb-3">名字风格<span class="text-on-surface-variant font-normal text-xs ml-1">（可多选）</span></label>
+        <div id="style-group" class="flex flex-wrap gap-2">
+          <!-- 风格选项-诗词风（默认选中） -->
+          <button id="btn-style-shici" type="button"
+            class="style-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-primary text-on-primary">
+            诗词风
+          </button>
+          <!-- 风格选项-现代风 -->
+          <button id="btn-style-xiandai" type="button"
+            class="style-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-surface-container text-on-surface">
+            现代风
+          </button>
+          <!-- 风格选项-古典雅（默认选中） -->
+          <button id="btn-style-gudian" type="button"
+            class="style-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-primary text-on-primary">
+            古典雅
+          </button>
+          <!-- 风格选项-阳光感 -->
+          <button id="btn-style-yangguang" type="button"
+            class="style-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-surface-container text-on-surface">
+            阳光感
+          </button>
+          <!-- 风格选项-沉稳感 -->
+          <button id="btn-style-chenwen" type="button"
+            class="style-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-surface-container text-on-surface">
+            沉稳感
+          </button>
+        </div>
+      </div>
+
+      <!-- 诗词出处偏好 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="text-sm font-semibold text-on-surface block mb-3">诗词出处偏好<span class="text-on-surface-variant font-normal text-xs ml-1">（可选）</span></label>
+        <div id="poetry-group" class="flex flex-wrap gap-2">
+          <!-- 诗词选项-诗经（默认选中） -->
+          <label id="label-poetry-shijing" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 cursor-pointer transition-all">
+            <input type="checkbox" id="chk-shijing" checked class="w-3.5 h-3.5 accent-primary rounded" />
+            <span class="text-sm font-medium text-primary">诗经</span>
+          </label>
+          <!-- 诗词选项-楚辞（默认选中） -->
+          <label id="label-poetry-chuci" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 cursor-pointer transition-all">
+            <input type="checkbox" id="chk-chuci" checked class="w-3.5 h-3.5 accent-primary rounded" />
+            <span class="text-sm font-medium text-primary">楚辞</span>
+          </label>
+          <!-- 诗词选项-论语 -->
+          <label id="label-poetry-lunyu" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container cursor-pointer transition-all">
+            <input type="checkbox" id="chk-lunyu" class="w-3.5 h-3.5 accent-primary rounded" />
+            <span class="text-sm font-medium text-on-surface">论语</span>
+          </label>
+          <!-- 诗词选项-唐诗 -->
+          <label id="label-poetry-tangshi" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container cursor-pointer transition-all">
+            <input type="checkbox" id="chk-tangshi" class="w-3.5 h-3.5 accent-primary rounded" />
+            <span class="text-sm font-medium text-on-surface">唐诗</span>
+          </label>
+          <!-- 诗词选项-宋词 -->
+          <label id="label-poetry-songci" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container cursor-pointer transition-all">
+            <input type="checkbox" id="chk-songci" class="w-3.5 h-3.5 accent-primary rounded" />
+            <span class="text-sm font-medium text-on-surface">宋词</span>
+          </label>
+          <!-- 诗词选项-周易 -->
+          <label id="label-poetry-zhouyi" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container cursor-pointer transition-all">
+            <input type="checkbox" id="chk-zhouyi" class="w-3.5 h-3.5 accent-primary rounded" />
+            <span class="text-sm font-medium text-on-surface">周易</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 排除字 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label for="input-exclude" class="text-sm font-semibold text-on-surface block mb-3">排除字<span class="text-on-surface-variant font-normal text-xs ml-1">（可选）</span></label>
+        <input id="input-exclude" type="text" placeholder="输入不想要的字，空格分隔"
+          class="w-full bg-surface-container border-none rounded-md px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" />
+        <p class="text-xs text-on-surface-variant mt-2">如避讳字、不喜用字等，多个字用空格分隔</p>
+      </div>
+
+      <!-- 智能避坑 -->
+      <div class="bg-surface shadow-card rounded-xl p-4">
+        <label class="text-sm font-semibold text-on-surface block mb-3">智能避坑</label>
+        <div class="space-y-3">
+          <!-- 避坑选项-避免网红名/热名（默认勾选） -->
+          <label id="label-avoid-hot" class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" id="chk-avoid-hot" checked class="w-4 h-4 accent-primary rounded" />
+            <div>
+              <span class="text-sm font-medium text-on-surface">避免网红名/热名</span>
+              <p class="text-xs text-on-surface-variant mt-0.5">过滤近年高频热名，如"梓涵""一诺"等</p>
+            </div>
+          </label>
+          <!-- 避坑选项-避免不良谐音（默认勾选） -->
+          <label id="label-avoid-homophone" class="flex items-center gap-2.5 cursor-pointer">
+            <input type="checkbox" id="chk-avoid-homophone" checked class="w-4 h-4 accent-primary rounded" />
+            <div>
+              <span class="text-sm font-medium text-on-surface">避免不良谐音</span>
+              <p class="text-xs text-on-surface-variant mt-0.5">智能检测名字谐音，避免尴尬读音</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- 底部按钮 -->
+      <div class="pt-4 pb-8">
+        <a href="name-result.html" id="btn-start-naming"
+          class="block w-full bg-primary text-on-primary text-center px-6 py-3.5 rounded-xl text-base font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
+          开始AI起名 <i data-lucide="arrow-right" class="w-4 h-4 inline-block align-middle ml-1"></i>
+        </a>
+      </div>
+
+    </div>
+  </main>
+  <!-- @main-content:end -->
+
+  <script>
+    $(function () {
+
+      // === 名字字数选择（单选互斥） ===
+      $('#name-length-group').on('click', '.name-length-btn', function () {
+        // 取消所有选中态
+        $('#name-length-group .name-length-btn')
+          .removeClass('bg-primary text-on-primary')
+          .addClass('bg-surface-container text-on-surface');
+        // 设置当前选中态
+        $(this)
+          .removeClass('bg-surface-container text-on-surface')
+          .addClass('bg-primary text-on-primary');
+      });
+
+      // === 名字风格多选（切换选中/取消） ===
+      $('#style-group').on('click', '.style-btn', function () {
+        if ($(this).hasClass('bg-primary')) {
+          // 取消选中
+          $(this)
+            .removeClass('bg-primary text-on-primary')
+            .addClass('bg-surface-container text-on-surface');
+        } else {
+          // 选中
+          $(this)
+            .removeClass('bg-surface-container text-on-surface')
+            .addClass('bg-primary text-on-primary');
+        }
+      });
+
+      // === 诗词出处复选框联动标签样式 ===
+      $('#poetry-group').on('change', 'input[type="checkbox"]', function () {
+        var $label = $(this).closest('label');
+        var $span = $label.find('span');
+        if ($(this).is(':checked')) {
+          $label.removeClass('bg-surface-container').addClass('bg-primary/10');
+          $span.removeClass('text-on-surface').addClass('text-primary');
+        } else {
+          $label.removeClass('bg-primary/10').addClass('bg-surface-container');
+          $span.removeClass('text-primary').addClass('text-on-surface');
+        }
+      });
+
+      // === 开始AI起名按钮 - 收集偏好参数跳转 ===
+      $('#btn-start-naming').on('click', function (e) {
+        e.preventDefault();
+        // 收集名字字数
+        var nameLength = $('#btn-length-double').hasClass('bg-primary') ? 'double' : 'single';
+        // 收集风格
+        var styles = [];
+        $('#style-group .style-btn.bg-primary').each(function () {
+          styles.push($(this).text().trim());
+        });
+        // 收集诗词出处
+        var poetry = [];
+        $('#poetry-group input[type="checkbox"]:checked').each(function () {
+          poetry.push($(this).closest('label').find('span').text().trim());
+        });
+        // 收集排除字
+        var exclude = $('#input-exclude').val().trim();
+        // 收集避坑选项
+        var avoidHot = $('#chk-avoid-hot').is(':checked') ? '1' : '0';
+        var avoidHomophone = $('#chk-avoid-homophone').is(':checked') ? '1' : '0';
+
+        // 拼接URL参数跳转
+        var params = $.param({
+          len: nameLength,
+          style: styles.join(','),
+          poetry: poetry.join(','),
+          exclude: exclude,
+          avoid_hot: avoidHot,
+          avoid_homo: avoidHomophone
+        });
+        window.location.href = 'name-result.html?' + params;
+      });
+
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

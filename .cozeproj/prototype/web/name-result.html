@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;600&family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #4A6FA5;
+      --color-primary-container:    #D4DFEF;
+      --color-on-primary:           #ffffff;
+      --color-secondary:            #5B9EA6;
+      --color-secondary-container:  #D4ECF0;
+      --color-on-secondary:         #ffffff;
+      --color-accent:               #C75C5C;
+      --color-accent-container:     #F5DCDC;
+      --color-on-accent:            #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #FAF9F7;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFFFF;
+      --color-surface-container:          #F5F3F0;
+      --color-surface-container-high:     #EDE9E3;
+      --color-surface-container-highest:  #E8E6E3;
+      /* === 文字 === */
+      --color-on-surface:           #1A1A1A;
+      --color-on-surface-variant:   #666666;
+      /* === 功能色 === */
+      --color-success:  #5B8C5A;
+      --color-error:    #C75C5C;
+      --color-warning:  #C4A35A;
+      /* === 边框 === */
+      --color-outline:          #E8E6E3;
+      --color-outline-variant:  #D4D0CA;
+      /* === 五行专属色 === */
+      --color-wuxing-jin:  #C9A96E;
+      --color-wuxing-mu:   #5B8C5A;
+      --color-wuxing-shui: #4A7FB5;
+      --color-wuxing-huo:  #C75C5C;
+      --color-wuxing-tu:   #C4A35A;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.06);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.10);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.15);
+      /* === 字体 === */
+      --font-sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
+      --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+  </style>
+
+  <!-- 打字机动画样式 -->
+  <style>
+    /* 打字机逐字出现动画 */
+    @keyframes typewriter-char {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    .typewriter-char {
+      opacity: 0;
+      animation: typewriter-char 0.05s forwards;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- 简化版导航：返回按钮 + 标题 + 步骤指示器 -->
+  <header class="bg-surface sticky top-0 z-40 border-b border-outline-variant/20">
+    <div class="max-w-4xl mx-auto h-14 flex items-center justify-between px-5">
+      <!-- 左侧：返回箭头 + 标题 -->
+      <div class="flex items-center gap-3">
+        <a href="name-preference.html" class="flex items-center justify-center w-8 h-8 rounded-md hover:bg-surface-container transition-colors" aria-label="返回上一步">
+          <i data-lucide="arrow-left" class="w-5 h-5 text-on-surface-variant"></i>
+        </a>
+        <span class="text-sm font-semibold text-on-surface">起名结果 <span class="text-on-surface-variant font-normal">[4/4]</span></span>
+      </div>
+      <!-- 右侧步骤指示器：4步全部完成 -->
+      <div class="flex items-center gap-0" aria-label="步骤 4/4 已完成">
+        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-on-primary text-xs font-semibold">✓</span>
+        <span class="w-8 h-0.5 bg-primary"></span>
+        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-on-primary text-xs font-semibold">✓</span>
+        <span class="w-8 h-0.5 bg-primary"></span>
+        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-on-primary text-xs font-semibold">✓</span>
+        <span class="w-8 h-0.5 bg-primary"></span>
+        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-on-primary text-xs font-semibold">✓</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-5 py-8 space-y-6">
+
+    <!-- AI分析过程展示区 -->
+    <div class="bg-surface shadow-card rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+          <i data-lucide="sparkles" class="w-4 h-4 text-primary"></i>
+        </div>
+        <span class="text-base font-semibold text-on-surface">AI分析结果</span>
+      </div>
+      <div id="ai-analysis-text" class="text-sm text-on-surface leading-relaxed min-h-[4rem]">
+        <!-- 模拟打字机效果：JS 将在页面加载后逐字显示以下文字 -->
+      </div>
+      <div class="mt-4 pt-3 border-t border-outline-variant/20">
+        <span class="text-xs text-on-surface-variant flex items-center gap-1">
+          <i data-lucide="info" class="w-3 h-3"></i>
+          以上内容由AI生成，仅供传统文化参考
+        </span>
+      </div>
+    </div>
+
+    <!-- 推荐名字列表标题 -->
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-on-surface">推荐名字</h2>
+      <span class="text-xs text-on-surface-variant">为您精选 5 个好名</span>
+    </div>
+
+    <!-- 名字卡片列表 -->
+    <div class="space-y-4">
+
+      <!-- 列表-名字卡片1: 张悦宁 -->
+      <a href="name-detail.html?id=1" id="card-name-1" class="block bg-surface shadow-card rounded-xl p-5 hover:shadow-float transition-shadow cursor-pointer">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <!-- 名字大字 -->
+            <h3 class="font-serif text-2xl font-bold text-on-surface tracking-wider">张 悦 宁</h3>
+            <!-- 五行标签 -->
+            <div class="flex items-center gap-2 mt-2">
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+                <span class="text-wuxing-mu">木</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-huo"></span>
+                <span class="text-wuxing-huo">火</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-huo"></span>
+                <span class="text-wuxing-huo">火</span>
+              </span>
+            </div>
+            <!-- 诗词出处 -->
+            <p class="text-xs text-on-surface-variant italic mt-2">"既见君子，云胡不宁"</p>
+          </div>
+          <!-- 右侧评分和标签 -->
+          <div class="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+            <span class="text-2xl font-bold text-primary">92<span class="text-sm font-medium ml-0.5">分</span></span>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/15 text-success">吉</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">静谧</span>
+            </div>
+          </div>
+        </div>
+        <!-- 操作栏 -->
+        <div class="flex items-center gap-4 mt-4 pt-3 border-t border-outline-variant/20">
+          <button id="btn-fav-1" class="name-card-fav-btn flex items-center gap-1 text-on-surface-variant hover:text-accent transition-colors text-sm" data-faved="false" aria-label="收藏张悦宁">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+            <span class="text-xs fav-text">收藏</span>
+          </button>
+          <button id="btn-copy-1" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="复制张悦宁">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span class="text-xs">复制</span>
+          </button>
+          <button id="btn-share-1" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="分享张悦宁">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+            <span class="text-xs">分享</span>
+          </button>
+        </div>
+      </a>
+
+      <!-- 列表-名字卡片2: 张泽萱 -->
+      <a href="name-detail.html?id=2" id="card-name-2" class="block bg-surface shadow-card rounded-xl p-5 hover:shadow-float transition-shadow cursor-pointer">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h3 class="font-serif text-2xl font-bold text-on-surface tracking-wider">张 泽 萱</h3>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-shui"></span>
+                <span class="text-wuxing-shui">水</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+                <span class="text-wuxing-mu">木</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+                <span class="text-wuxing-mu">木</span>
+              </span>
+            </div>
+            <p class="text-xs text-on-surface-variant italic mt-2">"泽及万世"</p>
+          </div>
+          <div class="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+            <span class="text-2xl font-bold text-primary">88<span class="text-sm font-medium ml-0.5">分</span></span>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/15 text-success">吉</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-secondary/15 text-secondary">温润</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 mt-4 pt-3 border-t border-outline-variant/20">
+          <button id="btn-fav-2" class="name-card-fav-btn flex items-center gap-1 text-on-surface-variant hover:text-accent transition-colors text-sm" data-faved="false" aria-label="收藏张泽萱">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+            <span class="text-xs fav-text">收藏</span>
+          </button>
+          <button id="btn-copy-2" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="复制张泽萱">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span class="text-xs">复制</span>
+          </button>
+          <button id="btn-share-2" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="分享张泽萱">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+            <span class="text-xs">分享</span>
+          </button>
+        </div>
+      </a>
+
+      <!-- 列表-名字卡片3: 张清越 -->
+      <a href="name-detail.html?id=3" id="card-name-3" class="block bg-surface shadow-card rounded-xl p-5 hover:shadow-float transition-shadow cursor-pointer">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h3 class="font-serif text-2xl font-bold text-on-surface tracking-wider">张 清 越</h3>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-shui"></span>
+                <span class="text-wuxing-shui">水</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-tu"></span>
+                <span class="text-wuxing-tu">土</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-tu"></span>
+                <span class="text-wuxing-tu">土</span>
+              </span>
+            </div>
+            <p class="text-xs text-on-surface-variant italic mt-2">"清越之音"</p>
+          </div>
+          <div class="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+            <span class="text-2xl font-bold text-primary">85<span class="text-sm font-medium ml-0.5">分</span></span>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/15 text-success">吉</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">清雅</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 mt-4 pt-3 border-t border-outline-variant/20">
+          <button id="btn-fav-3" class="name-card-fav-btn flex items-center gap-1 text-on-surface-variant hover:text-accent transition-colors text-sm" data-faved="false" aria-label="收藏张清越">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+            <span class="text-xs fav-text">收藏</span>
+          </button>
+          <button id="btn-copy-3" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="复制张清越">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span class="text-xs">复制</span>
+          </button>
+          <button id="btn-share-3" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="分享张清越">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+            <span class="text-xs">分享</span>
+          </button>
+        </div>
+      </a>
+
+      <!-- 列表-名字卡片4: 张润霖 -->
+      <a href="name-detail.html?id=4" id="card-name-4" class="block bg-surface shadow-card rounded-xl p-5 hover:shadow-float transition-shadow cursor-pointer">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h3 class="font-serif text-2xl font-bold text-on-surface tracking-wider">张 润 霖</h3>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-shui"></span>
+                <span class="text-wuxing-shui">水</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-shui"></span>
+                <span class="text-wuxing-shui">水</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+                <span class="text-wuxing-mu">木</span>
+              </span>
+            </div>
+            <p class="text-xs text-on-surface-variant italic mt-2">"润物细无声"</p>
+          </div>
+          <div class="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+            <span class="text-2xl font-bold text-primary">83<span class="text-sm font-medium ml-0.5">分</span></span>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-warning/15 text-warning">中</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-surface-container-high text-on-surface-variant">温厚</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 mt-4 pt-3 border-t border-outline-variant/20">
+          <button id="btn-fav-4" class="name-card-fav-btn flex items-center gap-1 text-on-surface-variant hover:text-accent transition-colors text-sm" data-faved="false" aria-label="收藏张润霖">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+            <span class="text-xs fav-text">收藏</span>
+          </button>
+          <button id="btn-copy-4" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="复制张润霖">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span class="text-xs">复制</span>
+          </button>
+          <button id="btn-share-4" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="分享张润霖">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+            <span class="text-xs">分享</span>
+          </button>
+        </div>
+      </a>
+
+      <!-- 列表-名字卡片5: 张沐禾 -->
+      <a href="name-detail.html?id=5" id="card-name-5" class="block bg-surface shadow-card rounded-xl p-5 hover:shadow-float transition-shadow cursor-pointer">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <h3 class="font-serif text-2xl font-bold text-on-surface tracking-wider">张 沐 禾</h3>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-shui"></span>
+                <span class="text-wuxing-shui">水</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+                <span class="text-wuxing-mu">木</span>
+              </span>
+              <span class="inline-flex items-center gap-1 text-xs font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+                <span class="text-wuxing-mu">木</span>
+              </span>
+            </div>
+            <p class="text-xs text-on-surface-variant italic mt-2">"沐春风而思归"</p>
+          </div>
+          <div class="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+            <span class="text-2xl font-bold text-primary">80<span class="text-sm font-medium ml-0.5">分</span></span>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/15 text-success">吉</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success/10 text-success">自然</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 mt-4 pt-3 border-t border-outline-variant/20">
+          <button id="btn-fav-5" class="name-card-fav-btn flex items-center gap-1 text-on-surface-variant hover:text-accent transition-colors text-sm" data-faved="false" aria-label="收藏张沐禾">
+            <i data-lucide="heart" class="w-4 h-4"></i>
+            <span class="text-xs fav-text">收藏</span>
+          </button>
+          <button id="btn-copy-5" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="复制张沐禾">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span class="text-xs">复制</span>
+          </button>
+          <button id="btn-share-5" class="flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors text-sm" aria-label="分享张沐禾">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+            <span class="text-xs">分享</span>
+          </button>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- 付费解锁区域（模糊遮罩效果） -->
+    <div class="relative bg-surface shadow-card rounded-xl overflow-hidden mt-8">
+      <!-- 模糊遮罩背景 -->
+      <div class="absolute inset-0 backdrop-blur-md bg-surface/60 z-10"></div>
+      <!-- 底部装饰性卡片轮廓（被模糊遮罩覆盖） -->
+      <div class="p-5 opacity-30">
+        <h3 class="font-serif text-2xl font-bold text-on-surface tracking-wider">张 溪 蕴</h3>
+        <div class="flex items-center gap-2 mt-2">
+          <span class="inline-flex items-center gap-1 text-xs font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-wuxing-shui"></span>
+            <span>水</span>
+          </span>
+          <span class="inline-flex items-center gap-1 text-xs font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+            <span>木</span>
+          </span>
+          <span class="inline-flex items-center gap-1 text-xs font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-wuxing-mu"></span>
+            <span>木</span>
+          </span>
+        </div>
+        <p class="text-xs text-on-surface-variant italic mt-2">"溪流潺潺，蕴藏灵秀"</p>
+      </div>
+      <!-- 解锁内容浮层 -->
+      <div class="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6">
+        <div class="flex items-center justify-center w-10 h-10 rounded-full bg-accent/10 mb-3">
+          <i data-lucide="lock" class="w-5 h-5 text-accent"></i>
+        </div>
+        <p class="text-base font-semibold text-on-surface mb-1">解锁全部名字 + AI深度解读</p>
+        <p class="text-xs text-on-surface-variant mb-4">已有 5 个名字免费展示，解锁查看更多</p>
+        <button id="btn-unlock" class="bg-accent text-on-accent px-6 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
+          ¥29.9 立即解锁
+        </button>
+      </div>
+    </div>
+
+    <!-- 底部间距 -->
+    <div class="h-8"></div>
+
+  </main>
+  <!-- @main-content:end -->
+
+  <script>
+    // 初始化 Lucide 图标
+    lucide.createIcons();
+
+    $(function () {
+
+      // === AI分析文字打字机效果 ===
+      var analysisText = '基于甲木日主、食神格，喜用神为水、木。建议名字补水木为佳，优先考虑诗词出处，兼顾音韵和谐。甲木参天，得水则生，遇木则辅，五行搭配以水木相生为上善之选。';
+      var $target = $('#ai-analysis-text');
+      var chars = analysisText.split('');
+
+      // 将每个字符包裹在 span 中，设置递增的 animation-delay
+      var html = '';
+      for (var i = 0; i < chars.length; i++) {
+        var delay = (i * 40); // 每字 40ms 延迟
+        var ch = chars[i];
+        if (ch === '，' || ch === '。' || ch === '、') {
+          // 标点符号稍长停顿
+          delay += 80;
+        }
+        html += '<span class="typewriter-char" style="animation-delay:' + delay + 'ms">' + ch + '</span>';
+      }
+      $target.html(html);
+
+      // === 收藏按钮交互 ===
+      $('.name-card-fav-btn').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $btn = $(this);
+        var $icon = $btn.find('[data-lucide]');
+        var isFaved = $btn.data('faved');
+
+        if (isFaved) {
+          // 取消收藏
+          $btn.data('faved', false);
+          $btn.removeClass('text-accent').addClass('text-on-surface-variant');
+          $icon.attr('data-lucide', 'heart');
+          $btn.find('.fav-text').text('收藏');
+        } else {
+          // 添加收藏
+          $btn.data('faved', true);
+          $btn.removeClass('text-on-surface-variant').addClass('text-accent');
+          $icon.attr('data-lucide', 'heart');
+          // 使用 CSS fill 模拟实心效果
+          $icon.css('fill', 'currentColor');
+          $btn.find('.fav-text').text('已收藏');
+        }
+        lucide.createIcons();
+        // 重新设置 fill 状态（lucide.createIcons 会重置）
+        if ($btn.data('faved')) {
+          $btn.find('svg').css('fill', 'currentColor');
+        }
+      });
+
+      // === 复制按钮交互 ===
+      $('[id^="btn-copy-"]').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var cardId = $(this).attr('id').replace('btn-copy-', '');
+        var nameMap = { '1': '张悦宁', '2': '张泽萱', '3': '张清越', '4': '张润霖', '5': '张沐禾' };
+        var name = nameMap[cardId] || '名字';
+
+        // 复制到剪贴板
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(name).then(function () {
+            console.log('已复制名字: ' + name);
+          });
+        } else {
+          console.log('需要复制名字到剪贴板: ' + name);
+        }
+
+        // 临时改变按钮文字提示
+        var $text = $(this).find('.text-xs');
+        var origText = $text.text();
+        $text.text('已复制');
+        $(this).addClass('text-primary');
+        setTimeout(function () {
+          $text.text(origText);
+          $(this).removeClass('text-primary');
+        }.bind(this), 1500);
+      });
+
+      // === 分享按钮交互 ===
+      $('[id^="btn-share-"]').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var cardId = $(this).attr('id').replace('btn-share-', '');
+        console.log('分享名字卡片 id=' + cardId + '，后续应调用系统分享 API 或展示分享弹窗');
+      });
+
+      // === 解锁按钮交互 ===
+      $('#btn-unlock').on('click', function () {
+        console.log('点击解锁按钮，后续应实现：1. 调起支付弹窗或跳转支付页 2. 支付成功后去除模糊遮罩 3. 展示全部名字列表和AI深度解读');
+      });
+
+      // === 名字卡片点击跳转（<a> 标签已自带 href 跳转，此处无需额外处理） ===
+      // 按钮 stopPropagation 已阻止冒泡到 <a>，点击按钮不会触发卡片跳转
+
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>
