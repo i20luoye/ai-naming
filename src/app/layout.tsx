@@ -54,8 +54,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${notoSerifSC.variable} ${notoSansSC.variable} ${jetbrainsMono.variable}`}>
-      <body className="antialiased bg-ink-900 text-ink-100 min-h-screen font-sans">
+    <html lang="zh-CN" className={`${notoSerifSC.variable} ${notoSansSC.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+      <body className="antialiased bg-ink-900 text-ink-100 min-h-screen font-sans" suppressHydrationWarning>
         {children}
       </body>
     </html>
