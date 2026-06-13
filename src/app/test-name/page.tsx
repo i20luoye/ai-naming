@@ -184,8 +184,7 @@ export default function TestNamePage() {
   }, []);
 
   const handleNameInput = useCallback((val: string) => {
-    const filtered = val.replace(/[^\u4e00-\u9fff]/g, '');
-    const trimmed = filtered.substring(0, 6);
+    const trimmed = val.substring(0, 6);
     setFullName(trimmed);
     parseName(trimmed);
   }, [parseName]);

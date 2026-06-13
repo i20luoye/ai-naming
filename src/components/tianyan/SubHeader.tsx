@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 interface SubHeaderProps {
   title: string;
@@ -16,9 +17,9 @@ export function SubHeader({ title, stepLabel, backHref, rightAction }: SubHeader
         <div className="flex items-center gap-3">
           <Link
             href={backHref}
-            className="text-ink-300 hover:text-gold-400 transition-colors text-sm"
+            className="text-ink-300 hover:text-gold-400 transition-colors"
           >
-            <i className="fa-solid fa-arrow-left" />
+            <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="font-serif text-base text-ink-100">
             {title}

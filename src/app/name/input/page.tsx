@@ -263,12 +263,12 @@ export default function NameInputPage() {
     <div className="min-h-screen flex flex-col bg-ink-900">
       <SubHeader title="起名 · 信息输入" stepLabel={`[${currentStep}/4]`} backHref="/" />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-6 pt-8 pb-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-6 flex flex-col justify-center py-8">
         {/* 进度条 */}
         <StepIndicator steps={stepIndicatorSteps} currentStep={currentStep - 1} />
 
         {/* 主体内容：左侧注解 + 右侧输入 */}
-        <div className="mt-10 grid md:grid-cols-5 gap-6 md:gap-12">
+        <div className="mt-8 grid md:grid-cols-5 gap-6 md:gap-12">
           {/* 左侧注解 - 仅桌面端可见 */}
           <div className="hidden md:flex md:col-span-2 flex-col justify-center">
             {/* Step 1 注解 */}
@@ -442,8 +442,15 @@ export default function NameInputPage() {
                     id="surnameInput"
                     value={surname}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/[^\u4e00-\u9fa5]/g, '');
+                      const val = e.target.value;
                       if (val.length <= 4) setSurname(val);
+                    }}
+                    onCompositionEnd={(e) => {
+                      const val = (e.target as HTMLInputElement).value.replace(/[^\u4e00-\u9fa5]/g, '');
+                      setSurname(val);
+                    }}
+                    onBlur={() => {
+                      setSurname(prev => prev.replace(/[^\u4e00-\u9fa5]/g, ''));
                     }}
                     placeholder="如：张"
                     maxLength={4}
