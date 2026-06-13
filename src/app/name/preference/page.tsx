@@ -209,8 +209,8 @@ export default function NamePreferencePage() {
             <div className="text-gold-400/15">|</div>
             <div className="flex items-center gap-1.5">
               喜用神
-              {xiList.map((wx) => (
-                <WuxingTag key={wx} wuxing={wx} />
+              {xiList.map((wx, i) => (
+                <WuxingTag key={wx + "-" + i} wuxing={wx} />
               ))}
             </div>
           </div>

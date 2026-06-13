@@ -762,8 +762,8 @@ export default function HomePage() {
               </p>
               <div className="gold-line mt-6 mb-4" />
               <div className="flex justify-center gap-2">
-                {['金', '木', '水', '火'].map((wx) => (
-                  <span key={wx} className="bazi-tag w-[34px] h-[34px] text-xs font-serif font-medium text-gold-200">{wx}</span>
+                {['金', '木', '水', '火'].map((wx, i) => (
+                  <span key={wx + "-" + i} className="bazi-tag w-[34px] h-[34px] text-xs font-serif font-medium text-gold-200">{wx}</span>
                 ))}
               </div>
             </div>

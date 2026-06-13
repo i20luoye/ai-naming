@@ -452,12 +452,12 @@ export default function TestNamePage() {
                               <Info size={9} /> 五行格局
                             </div>
                             <div className="space-y-2.5">
-                              {['金','木','水','火','土'].map(wx => {
+                              {['金','木','水','火','土'].map((wx, i) => {
                                 const count = wxCount[wx];
                                 const pct = fullName.length > 0 ? Math.round((count / fullName.length) * 100) : 0;
                                 const barPct = Math.round((count / maxWxCount) * 100);
                                 return (
-                                  <div key={wx} className="flex items-center gap-3">
+                                  <div key={wx + "-" + String(i)} className="flex items-center gap-3">
                                     <div className="flex items-center gap-1.5 w-12">
                                       <WxIcon wx={wx} size={10} />
                                       <span className="font-serif text-xs" style={{ color: WX_COLORS[wx] }}>{wx}</span>
@@ -482,16 +482,16 @@ export default function TestNamePage() {
                             {/* 总评 */}
                             <div className="mt-3 flex items-center gap-2 flex-wrap">
                               <span className="text-[10px] text-ink-300">姓名五行：</span>
-                              {presentWx.map(wx => (
-                                <WuxingTag key={wx} wuxing={wx}>
+                              {presentWx.map((wx, i) => (
+                                <WuxingTag key={wx + "-" + i} wuxing={wx}>
                                   <WxIcon wx={wx} size={8} /> {wx}
                                 </WuxingTag>
                               ))}
                               {lackingWx.length > 0 && (
                                 <>
                                   <span className="text-[10px] text-ink-300">缺</span>
-                                  {lackingWx.map(wx => (
-                                    <span key={wx} className="text-[9px] px-1.5 py-0.5 rounded bg-vermilion/[0.08] text-vermilion-light border border-vermilion/15">
+                                  {lackingWx.map((wx, i) => (
+                                    <span key={wx + "-" + String(i)} className="text-[9px] px-1.5 py-0.5 rounded bg-vermilion/[0.08] text-vermilion-light border border-vermilion/15">
                                       {wx}
                                     </span>
                                   ))}
@@ -722,16 +722,16 @@ export default function TestNamePage() {
                             {isNameValid && (
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-[10px] text-ink-300">五行：</span>
-                                {presentWx.map(wx => (
-                                  <WuxingTag key={wx} wuxing={wx}>
+                                {presentWx.map((wx, i) => (
+                                  <WuxingTag key={wx + "-" + i} wuxing={wx}>
                                     <WxIcon wx={wx} size={8} /> {wx}{wxCount[wx]}
                                   </WuxingTag>
                                 ))}
                                 {lackingWx.length > 0 && (
                                   <>
                                     <span className="text-[10px] text-ink-300">缺</span>
-                                    {lackingWx.map(wx => (
-                                      <span key={wx} className="text-[9px] px-1.5 py-0.5 rounded bg-vermilion/[0.08] text-vermilion-light border border-vermilion/15">{wx}</span>
+                                    {lackingWx.map((wx, i) => (
+                                      <span key={wx + "-" + String(i)} className="text-[9px] px-1.5 py-0.5 rounded bg-vermilion/[0.08] text-vermilion-light border border-vermilion/15">{wx}</span>
                                     ))}
                                   </>
                                 )}

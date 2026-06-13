@@ -579,8 +579,8 @@ export default function NameResultPage() {
         {/* 喜用 */}
         <div className="flex items-center gap-1">
           喜用{' '}
-          {xiList.map((wx) => (
-            <WuxingTag key={wx} wuxing={wx} />
+          {xiList.map((wx, i) => (
+            <WuxingTag key={wx + "-" + i} wuxing={wx} />
           ))}
         </div>
       </div>
@@ -645,8 +645,8 @@ export default function NameResultPage() {
             <div className="space-y-1.5 mb-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px]" style={{ color: '#a89e8e' }}>五行补益</span>
-                {n.wx.map((w) => (
-                  <WuxingTag key={w} wuxing={w} />
+                {n.wx.map((w, i) => (
+                  <WuxingTag key={w + "-" + String(i)} wuxing={w} />
                 ))}
                 {n.matchCount > 0 && (
                   <span
@@ -1010,8 +1010,8 @@ export default function NameResultPage() {
                     {n.fullName}
                   </div>
                   <div className="flex items-center justify-center gap-1 mb-1">
-                    {n.wx.map((w) => (
-                      <WuxingTag key={w} wuxing={w} />
+                    {n.wx.map((w, i) => (
+                      <WuxingTag key={w + "-" + String(i)} wuxing={w} />
                     ))}
                   </div>
                   <div className="flex items-center justify-center gap-2">
@@ -1095,8 +1095,8 @@ export default function NameResultPage() {
                       {n.pinyin} · {n.style}
                     </div>
                     <div className="flex gap-1.5 mb-2">
-                      {n.wx.map((w) => (
-                        <WuxingTag key={w} wuxing={w} />
+                      {n.wx.map((w, i) => (
+                        <WuxingTag key={w + "-" + String(i)} wuxing={w} />
                       ))}
                     </div>
                     <div className="flex items-center gap-2">

@@ -334,7 +334,7 @@ export default function TestNameResultPage() {
                 </div>
                 <div className="text-[10px] mb-2 text-ink-300">五行分布</div>
                 <div className="grid grid-cols-5 gap-2">
-                  {['金','木','水','火','土'].map(wx => {
+                  {['金','木','水','火','土'].map((wx, i) => {
                     const val = result.wuxing?.[wx] || 0;
                     const totalWx = Object.values(result.wuxing || {}).reduce((a: number, b: number) => a + b, 0) || 1;
                     const pct = Math.round((val / totalWx) * 100);

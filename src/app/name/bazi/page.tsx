@@ -563,13 +563,13 @@ export default function NameBaziPage() {
                 <span className="text-xs text-ink-300">共 8 字</span>
               </div>
 
-              {wxList.map((wx) => {
+              {wxList.map((wx, wxIdx) => {
                 const count = wxRawCount[wx];
                 const pct = Math.round((count / 8) * 100);
                 const barPct = Math.round((count / maxWxCount) * 100);
                 const isLack = count <= 1;
                 return (
-                  <div key={wx} className="mb-4 last:mb-0">
+                  <div key={wx + "-" + String(wxIdx)} className="mb-4 last:mb-0">
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className={`text-xs ${WUXING_TAILWIND[wx]}`}>●</span>
@@ -752,7 +752,7 @@ export default function NameBaziPage() {
                 <div className="flex flex-wrap gap-2">
                   {bazi.xiYong.map((wx, i) => (
                     <span
-                      key={wx}
+                      key={wx + "-" + String(i)}
                       className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded font-serif text-[13px] transition-all duration-400 ${xiAnimated ? 'opacity-100 scale-100' : 'opacity-0 scale-80'}`}
                       style={{
                         transitionDelay: `${i * 150}ms`,
@@ -774,7 +774,7 @@ export default function NameBaziPage() {
                 <div className="flex flex-wrap gap-2">
                   {bazi.jiShen.map((wx, i) => (
                     <span
-                      key={wx}
+                      key={wx + "-" + String(i)}
                       className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded font-serif text-[13px] transition-all duration-400 ${xiAnimated ? 'opacity-100 scale-100' : 'opacity-0 scale-80'}`}
                       style={{
                         transitionDelay: `${(bazi.xiYong.length + i) * 150}ms`,
