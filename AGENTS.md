@@ -1,65 +1,91 @@
-# 项目上下文
+# AGENTS.md — 天衍 AI 起名工具
 
-### 版本技术栈
+## 项目概览
 
-- **Framework**: Next.js 16 (App Router)
-- **Core**: React 19
-- **Language**: TypeScript 5
-- **UI 组件**: shadcn/ui (基于 Radix UI)
-- **Styling**: Tailwind CSS 4
+「天衍」是一款基于八字喜用神分析的 AI 智能起名工具。品牌调性：墨韵金辉、东方古典、现代极简。技术栈：Next.js 16 (App Router) + React 19 + TypeScript 5 + Tailwind CSS 4 + shadcn/ui。
+
+## 构建和运行命令
+
+- **安装依赖**：`pnpm install`
+- **开发**：`pnpm run dev`（端口 5000，HMR 自动生效）
+- **构建**：`pnpm run build`
+- **生产启动**：`pnpm run start`
+- **类型检查**：`pnpm ts-check`
+- **Lint**：`pnpm lint`
 
 ## 目录结构
 
 ```
-├── public/                 # 静态资源
-├── scripts/                # 构建与启动脚本
-│   ├── build.sh            # 构建脚本
-│   ├── dev.sh              # 开发环境启动脚本
-│   ├── prepare.sh          # 预处理脚本
-│   └── start.sh            # 生产环境启动脚本
-├── src/
-│   ├── app/                # 页面路由与布局
-│   ├── components/ui/      # Shadcn UI 组件库
-│   ├── hooks/              # 自定义 Hooks
-│   ├── lib/                # 工具库
-│   │   └── utils.ts        # 通用工具函数 (cn)
-│   └── server.ts           # 自定义服务端入口
-├── next.config.ts          # Next.js 配置
-├── package.json            # 项目依赖管理
-└── tsconfig.json           # TypeScript 配置
+src/
+├── app/
+│   ├── (home)/              # 首页（route group，含 SiteHeader）
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── name/                # 起名流程
+│   │   ├── input/           # Step1: 信息输入
+│   │   ├── bazi/            # Step2-3: 排盘结果
+│   │   ├── preference/      # Step3: 起名偏好
+│   │   ├── result/          # Step4: AI起名结果
+│   │   └── detail/          # 名字详情
+│   ├── test-name/           # 测名流程
+│   │   ├── page.tsx         # 测名输入
+│   │   └── result/          # 测名结果
+│   └── api/
+│       ├── bazi/            # POST: 八字排盘计算
+│       ├── generate-names/  # POST: AI起名生成
+│       └── test-name/       # POST: AI测名评分
+├── components/
+│   ├── tianyan/             # 业务组件
+│   │   ├── SiteHeader.tsx   # 全站顶部导航
+│   │   ├── SubHeader.tsx    # 流程页子导航（返回+标题+步骤）
+│   │   ├── StepIndicator.tsx # 步骤指示器
+│   │   ├── WuxingTag.tsx    # 五行标签（带专属色）
+│   │   └── GoldLine.tsx     # 金色分割线
+│   └── ui/                  # shadcn/ui 基础组件
+├── lib/
+│   ├── bazi.ts              # 八字排盘核心计算库
+│   └── utils.ts             # 工具函数
+└── data/                    # 静态数据（预留）
 ```
 
-- 项目文件（如 app 目录、pages 目录、components 等）默认初始化到 `src/` 目录下。
+## 设计规范
 
-## 包管理规范
+- **配色**：墨黑(#0a0806)底色 + 金箔(#c8a45c)主色 + 朱砂(#c4564a)强调色
+- **字体**：Noto Serif SC(标题) + Noto Sans SC(正文) + JetBrains Mono(数据)
+- **圆角**：8px(rounded-lg)，五行标签 4px(rounded-sm)
+- **阴影**：金色光晕用 text-shadow，卡片用 shadow-card，禁止浓重实阴影
+- **禁止**：浅色背景、蓝紫色科技风、卡通/道教图案、"大师"人像、"算命/改运"措辞
 
-**仅允许使用 pnpm** 作为包管理器，**严禁使用 npm 或 yarn**。
-**常用命令**：
-- 安装依赖：`pnpm add <package>`
-- 安装开发依赖：`pnpm add -D <package>`
-- 安装所有依赖：`pnpm install`
-- 移除依赖：`pnpm remove <package>`
+## API 接口
 
-## 开发规范
+### POST /api/bazi
+- 参数：`{ birthDate: string (YYYY-MM-DD), birthTime: string (HH:mm) }`
+- 返回：四柱八字、五行分布、喜用神、格局
 
-### 编码规范
+### POST /api/generate-names
+- 参数：`{ surname, birthDate, birthTime, gender, xiYong[], pattern, preferences? }`
+- 返回：AI 生成的名字列表（含五行、评分、诗词出处）
 
-- 默认按 TypeScript `strict` 心智写代码；优先复用当前作用域已声明的变量、函数、类型和导入，禁止引用未声明标识符或拼错变量名。
-- 禁止隐式 `any` 和 `as any`；函数参数、返回值、解构项、事件对象、`catch` 错误在使用前应有明确类型或先完成类型收窄，并清理未使用的变量和导入。
+### POST /api/test-name
+- 参数：`{ surname, givenName, birthDate?, birthTime?, gender? }`
+- 返回：名字评分和多维度分析
 
-### next.config 配置规范
+## LLM 集成
 
-- 配置的路径不要写死绝对路径，必须使用 path.resolve(__dirname, ...)、import.meta.dirname 或 process.cwd() 动态拼接。
+- SDK：`coze-coding-dev-sdk`（TypeScript）
+- 默认模型：`doubao-seed-2-0-lite-260215`
+- System Prompt 内置合规约束，禁止"算命/改运/预测"措辞
 
-### Hydration 问题防范
+## 合规红线
 
-1. 严禁在 JSX 渲染逻辑中直接使用 typeof window、Date.now()、Math.random() 等动态数据。**必须使用 'use client' 并配合 useEffect + useState 确保动态内容仅在客户端挂载后渲染**；同时严禁非法 HTML 嵌套（如 <p> 嵌套 <div>）。
-2. **禁止使用 head 标签**，优先使用 metadata，详见文档：https://nextjs.org/docs/app/api-reference/functions/generate-metadata
-   1. 三方 CSS、字体等资源可在 `globals.css` 中顶部通过 `@import` 引入或使用 next/font
-   2. preload, preconnect, dns-prefetch 通过 ReactDOM 的 preload、preconnect、dns-prefetch 方法引入
-   3. json-ld 可阅读 https://nextjs.org/docs/app/guides/json-ld
+- 必须使用"传统文化参考""五行分析"等中性表述
+- 禁止暗示名字可以改变命运
+- 禁止人生预测、运势判断
+- 每个分析结果底部必须附合规标识
 
-## UI 设计与组件规范 (UI & Styling Standards)
+## 代码风格
 
-- 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
-- Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+- 所有组件使用 TypeScript，参数必须标注类型
+- 客户端交互组件需加 `'use client'` 指令
+- 颜色必须使用 globals.css 中的语义变量，禁止硬编码 hex
+- UI 组件优先使用 shadcn/ui，样式冲突时改用原生 HTML 元素 + 完整 className
