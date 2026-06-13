@@ -197,7 +197,7 @@ export default function TestNameResultPage() {
   const yinyunGrade = getGrade(result.yinyunScore);
   const wuxingEntries = Object.entries(result.wuxing || {}).sort((a, b) => b[1] - a[1]);
   const nameChars = result.fullName?.split('') || [];
-  const nameWxList = (result.nameWuxing || '').split(/[→·\-\s]+/).map(s => s.trim()).filter(Boolean);
+  const nameWxList = Array.isArray(result.nameWuxing) ? result.nameWuxing : (typeof result.nameWuxing === 'string' ? result.nameWuxing.split(/[→·\-\s]+/).map((s: string) => s.trim()).filter(Boolean) : []);
   const radius = 65;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (animScore / 100) * circumference;
