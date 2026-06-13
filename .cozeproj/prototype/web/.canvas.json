@@ -27,6 +27,14 @@
     {
       "type": "html",
       "options": {
+        "path": ".cozeproj/prototype/web/name-bazi2.html"
+      },
+      "title": "排盘结果V2",
+      "size": "web"
+    },
+    {
+      "type": "html",
+      "options": {
         "path": ".cozeproj/prototype/web/name-preference.html"
       },
       "title": "起名偏好",
