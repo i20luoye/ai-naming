@@ -1,8 +1,12 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { StepIndicator } from '@/components/tianyan/StepIndicator';
 import { SubHeader } from '@/components/tianyan/SubHeader';
-import { WuxingTag, WuxingDot } from '@/components/tianyan/WuxingTag';
+import { WuxingTag } from '@/components/tianyan/WuxingTag';
 import { GoldLine } from '@/components/tianyan/GoldLine';
-import Link from 'next/link';
+import type { BaziData } from '@/lib/storage';
 
 const steps = [
   { label: '输入' },
@@ -11,128 +15,179 @@ const steps = [
   { label: '结果' },
 ];
 
-// Mock data - will be replaced by API
-const baziData = {
-  surname: '张',
-  gender: '男',
-  birthDate: '2024-03-15',
-  birthTime: '14:30',
-  pillars: [
-    { pillar: '年柱', gan: '庚', zhi: '午', wx: ['金', '火'], canggan: '丁己' },
-    { pillar: '月柱', gan: '辛', zhi: '巳', wx: ['金', '火'], canggan: '庚丙戊' },
-    { pillar: '日柱', gan: '甲', zhi: '子', wx: ['木', '水'], canggan: '癸' },
-    { pillar: '时柱', gan: '丙', zhi: '寅', wx: ['火', '木'], canggan: '甲丙戊' },
-  ],
-  wuxing: { 金: 30, 木: 15, 水: 20, 火: 35, 土: 0 },
-  pattern: '食神格',
-  dayMaster: '日主甲木偏弱，食伤生财',
-  xiYong: ['水', '木'],
-  jiShen: ['金', '土'],
+const WUXING_COLORS: Record<string, string> = {
+  '金': 'text-gold-400',
+  '木': 'text-green-400',
+  '水': 'text-blue-400',
+  '火': 'text-red-400',
+  '土': 'text-amber-300',
+};
+
+const WUXING_BG: Record<string, string> = {
+  '金': 'bg-gold-400/20',
+  '木': 'bg-green-400/20',
+  '水': 'bg-blue-400/20',
+  '火': 'bg-red-400/20',
+  '土': 'bg-amber-300/20',
 };
 
 export default function NameBaziPage() {
+  const router = useRouter();
+  const [bazi, setBazi] = useState<BaziData | null>(null);
+  const [surname, setSurname] = useState('');
+  const [animStep, setAnimStep] = useState(0);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('tianyan_bazi');
+    const inputRaw = localStorage.getItem('tianyan_input');
+    if (raw) {
+      setBazi(JSON.parse(raw));
+    }
+    if (inputRaw) {
+      const input = JSON.parse(inputRaw);
+      setSurname(input.surname || '');
+    }
+    // 四柱逐列淡入
+    const timers = [0, 1, 2, 3].map((i) =>
+      setTimeout(() => setAnimStep(i + 1), 300 * (i + 1))
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  if (!bazi) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ink-900">
+        <div className="text-ink-400 text-sm">
+          <i className="fa-solid fa-circle-exclamation mr-2" />
+          未找到排盘数据，请重新输入信息
+          <button onClick={() => router.push('/name/input')} className="ml-2 text-gold-400 underline">
+            返回输入
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const wuxingEntries = Object.entries(bazi.wuxingPercent).sort((a, b) => b[1] - a[1]);
+  const totalPercent = wuxingEntries.reduce((sum, e) => sum + e[1], 0);
+
   return (
     <div className="min-h-screen flex flex-col bg-ink-900">
       <SubHeader title="排盘结果" stepLabel="[2/4]" backHref="/name/input" />
       <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8">
         <StepIndicator steps={steps} currentStep={1} />
 
-        {/* 命盘卡片 */}
-        <div className="jinming-card rounded-xl p-6 mt-8">
-          <h2 className="font-serif text-lg text-ink-100 text-center mb-6">
-            {baziData.surname}某某 · 八字命盘
+        {/* 八字命盘 */}
+        <div className="mt-8 jinming-card rounded-xl p-6 animate-fade-in-up stagger-1">
+          <h2 className="text-lg font-serif text-gold-400 mb-5 flex items-center gap-2">
+            <i className="fa-solid fa-scroll text-sm" />
+            {surname}某某 · 八字命盘
           </h2>
-          <div className="grid grid-cols-4 gap-3 text-center">
-            {baziData.pillars.map((p, i) => (
-              <div key={i} className="pillar-col" style={{ animationDelay: `${i * 200}ms` }}>
-                <p className="text-ink-400 text-xs mb-2">{p.pillar}</p>
-                <p className="font-mono text-2xl text-gold-400 glow-gold-sm mb-1">
-                  {p.gan}{p.zhi}
-                </p>
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  {p.wx.map((w, j) => (
-                    <span key={j} className="flex items-center gap-0.5">
-                      <WuxingDot element={w as '金'|'木'|'水'|'火'|'土'} />
-                    </span>
-                  ))}
-                  <span className="text-ink-400 text-[10px] ml-0.5">
-                    {p.wx.join('')}
+
+          {/* 四柱表格 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {bazi.pillars.map((p, idx) => (
+              <div
+                key={p.pillar}
+                className={`text-center p-4 rounded-lg bg-ink-800/40 border border-gold-400/8 transition-all duration-500 ${
+                  animStep > idx ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                <div className="text-xs text-ink-400 mb-2">{p.pillar}</div>
+                <div className="font-mono text-3xl text-ink-100 leading-tight">
+                  <div>{p.gan}</div>
+                  <div>{p.zhi}</div>
+                </div>
+                <div className="flex justify-center gap-1 mt-2">
+                  <span className={`inline-flex items-center gap-0.5 text-xs ${WUXING_COLORS[p.ganWuxing]}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${WUXING_BG[p.ganWuxing]} ${WUXING_COLORS[p.ganWuxing]}`} />
+                    {p.ganWuxing}
+                  </span>
+                  <span className={`inline-flex items-center gap-0.5 text-xs ${WUXING_COLORS[p.zhiWuxing]}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${WUXING_BG[p.zhiWuxing]} ${WUXING_COLORS[p.zhiWuxing]}`} />
+                    {p.zhiWuxing}
                   </span>
                 </div>
-                <p className="text-ink-500 text-[10px]">藏干: {p.canggan}</p>
+                <div className="text-[10px] text-ink-500 mt-1.5">
+                  {p.cangGan.join(' ')}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <GoldLine className="my-8" />
+        <GoldLine />
 
         {/* 五行分布 */}
-        <div className="jinming-card rounded-xl p-6">
-          <h3 className="font-serif text-base text-ink-100 mb-5">五行分布</h3>
+        <div className="jinming-card rounded-xl p-6 animate-fade-in-up stagger-2">
+          <h2 className="text-base font-serif text-gold-400 mb-4 flex items-center gap-2">
+            <i className="fa-solid fa-chart-simple text-sm" />
+            五行分布
+          </h2>
           <div className="space-y-3">
-            {Object.entries(baziData.wuxing).map(([el, pct]) => (
-              <div key={el} className="flex items-center gap-3">
-                <WuxingTag element={el as '金'|'木'|'水'|'火'|'土'} />
-                <div className="flex-1 h-2 bg-ink-800/60 rounded-full overflow-hidden">
+            {wuxingEntries.map(([wx, pct]) => (
+              <div key={wx} className="flex items-center gap-3">
+                <WuxingTag wuxing={wx} />
+                <div className="flex-1 h-2.5 bg-ink-800/60 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full wuxing-bar-${el}`}
-                    style={{ width: `${pct}%` }}
+                    className={`h-full rounded-full transition-all duration-700 ${WUXING_BG[wx]}`}
+                    style={{ width: `${totalPercent > 0 ? (pct / totalPercent) * 100 : 0}%` }}
                   />
                 </div>
-                <span className="text-ink-300 text-sm font-mono w-10 text-right">{pct}%</span>
+                <span className={`text-sm font-mono ${WUXING_COLORS[wx]} w-10 text-right`}>{pct}%</span>
               </div>
             ))}
           </div>
         </div>
 
-        <GoldLine className="my-8" />
+        <GoldLine />
 
         {/* 喜用神分析 */}
-        <div className="jinming-card rounded-xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="font-serif text-base text-ink-100">喜用神分析</h3>
-            <span className="px-2 py-0.5 rounded bg-gold-400/10 text-gold-400 text-xs">
-              {baziData.pattern}
-            </span>
-          </div>
-          <p className="text-ink-300 text-sm mb-5">{baziData.dayMaster}</p>
+        <div className="jinming-card rounded-xl p-6 animate-fade-in-up stagger-3">
+          <h2 className="text-base font-serif text-gold-400 mb-4 flex items-center gap-2">
+            <i className="fa-solid fa-yin-yang text-sm" />
+            喜用神分析
+          </h2>
 
-          <div className="flex gap-6 mb-5">
-            <div>
-              <p className="text-ink-400 text-xs mb-2">喜用神</p>
-              <div className="flex gap-2">
-                {baziData.xiYong.map((x, i) => (
-                  <span
-                    key={i}
-                    className="inline-block px-3 py-1.5 rounded-lg bg-gold-400/15 text-gold-400 font-serif text-lg glow-gold-sm"
-                  >
-                    {x}
-                  </span>
-                ))}
-              </div>
+          {/* 格局标签 */}
+          <div className="inline-block px-3 py-1 rounded-md bg-gold-400/10 text-gold-400 text-sm mb-3">
+            {bazi.pattern}
+          </div>
+
+          {/* 日主分析 */}
+          <p className="text-ink-200 text-sm mb-4">
+            日主<strong className="text-gold-400">{bazi.dayMaster}</strong>（{bazi.dayMasterWuxing}）偏<strong className="text-gold-400">{bazi.strength}</strong>
+            ，{bazi.pattern}格局分析如下：
+          </p>
+
+          {/* 喜用神 */}
+          <div className="mb-4">
+            <span className="text-ink-300 text-sm">喜用神：</span>
+            <div className="inline-flex gap-2 ml-2">
+              {bazi.xiYong.map((wx) => (
+                <span key={wx} className={`px-3 py-1 rounded-md text-base font-semibold ${WUXING_BG[wx]} ${WUXING_COLORS[wx]}`}>
+                  {wx}
+                </span>
+              ))}
             </div>
-            <div>
-              <p className="text-ink-400 text-xs mb-2">忌神</p>
-              <div className="flex gap-2">
-                {baziData.jiShen.map((x, i) => (
-                  <span
-                    key={i}
-                    className="inline-block px-3 py-1.5 rounded-lg bg-ink-800/60 text-ink-400 font-serif text-lg"
-                  >
-                    {x}
-                  </span>
-                ))}
-              </div>
+          </div>
+
+          {/* 忌神 */}
+          <div className="mb-4">
+            <span className="text-ink-400 text-sm">忌神：</span>
+            <div className="inline-flex gap-2 ml-2">
+              {bazi.jiShen.map((wx) => (
+                <span key={wx} className="px-3 py-1 rounded-md text-base font-semibold bg-ink-700/40 text-ink-400">
+                  {wx}
+                </span>
+              ))}
             </div>
           </div>
 
           {/* 差异化提示 */}
-          <div className="p-3 rounded-lg bg-teal-900/15 border border-teal-500/15 text-sm">
-            <i className="fa-solid fa-lightbulb text-gold-400 mr-1.5" />
-            <span className="text-ink-300">
-              不是简单&ldquo;缺啥补啥&rdquo;，而是<span className="text-gold-400">格局分析</span>+<span className="text-gold-400">扶抑调候</span>
-            </span>
+          <div className="p-3 rounded-lg bg-gold-400/5 border border-gold-400/10 text-ink-300 text-xs">
+            <i className="fa-solid fa-lightbulb mr-1 text-gold-400" />
+            不是简单「缺啥补啥」，而是基于格局分析 + 扶抑调候，综合判定喜用神方向
           </div>
         </div>
 
@@ -142,13 +197,13 @@ export default function NameBaziPage() {
         </p>
 
         {/* 底部按钮 */}
-        <div className="sticky bottom-0 bg-ink-900/90 backdrop-blur-sm pt-4 pb-6 mt-6">
-          <Link
-            href="/name/preference"
-            className="gold-btn block w-full py-3.5 rounded-lg text-ink-900 font-semibold text-center text-base"
+        <div className="mt-6 pb-8">
+          <button
+            onClick={() => router.push('/name/preference')}
+            className="btn-gold block w-full py-3.5 rounded-lg text-ink-900 font-semibold text-center text-base hover:opacity-90 transition-all"
           >
             下一步：起名偏好 <i className="fa-solid fa-arrow-right ml-1 text-sm" />
-          </Link>
+          </button>
         </div>
       </main>
     </div>

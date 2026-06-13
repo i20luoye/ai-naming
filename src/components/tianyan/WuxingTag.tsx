@@ -1,5 +1,5 @@
 interface WuxingTagProps {
-  element: '金' | '木' | '水' | '火' | '土';
+  wuxing: string;
   children?: React.ReactNode;
 }
 
@@ -19,11 +19,11 @@ const elementDots: Record<string, string> = {
   土: 'bg-wuxing-tu',
 };
 
-export function WuxingTag({ element, children }: WuxingTagProps) {
+export function WuxingTag({ wuxing, children }: WuxingTagProps) {
   return (
-    <span className={`wx-tag ${elementClasses[element]}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${elementDots[element]}`} />
-      {children || element}
+    <span className={`wx-tag ${elementClasses[wuxing] || ''}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${elementDots[wuxing] || 'bg-ink-500'}`} />
+      {children || wuxing}
     </span>
   );
 }

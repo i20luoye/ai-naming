@@ -30,7 +30,7 @@ export default function HomePage() {
   return (
     <div className="max-w-4xl mx-auto px-6">
       {/* Hero */}
-      <section className="py-20 text-center animate-fade-in">
+      <section className="py-20 text-center animate-fade-in-up-up">
         <div className="inline-block px-4 py-1.5 rounded-full bg-gold-400/10 text-gold-400 text-xs mb-6">
           传统文化数字化工具
         </div>
@@ -43,7 +43,7 @@ export default function HomePage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/name/input"
-            className="gold-btn px-10 py-3.5 rounded-lg text-ink-900 font-semibold text-base inline-flex items-center gap-2"
+            className="btn-gold px-10 py-3.5 rounded-lg text-ink-900 font-semibold text-base inline-flex items-center gap-2"
           >
             开始八字起名 <i className="fa-solid fa-arrow-right text-sm" />
           </Link>
@@ -59,7 +59,7 @@ export default function HomePage() {
       <GoldLine />
 
       {/* 信任背书 */}
-      <section className="py-16 animate-fade-in" style={{ animationDelay: '200ms' }}>
+      <section className="py-16 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {features.map((f, i) => (
             <JinmingCard key={i} className="text-center">
@@ -76,7 +76,7 @@ export default function HomePage() {
       <GoldLine />
 
       {/* 今日推荐名字 */}
-      <section className="py-16 animate-fade-in" style={{ animationDelay: '400ms' }}>
+      <section className="py-16 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
         <h2 className="font-serif text-2xl text-ink-100 text-center mb-8">今日推荐名字</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {exampleNames.map((n, i) => (
@@ -88,7 +88,7 @@ export default function HomePage() {
                   </p>
                   <div className="flex items-center justify-center gap-1.5 mb-3">
                     {n.wuxing.map((wx, j) => (
-                      <WuxingTag key={j} element={wx} />
+                      <WuxingTag key={j} wuxing={wx} />
                     ))}
                   </div>
                   <div className="flex items-center justify-center gap-3 text-sm">

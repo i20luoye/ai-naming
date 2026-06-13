@@ -1,152 +1,245 @@
-import { WuxingTag, WuxingDot } from '@/components/tianyan/WuxingTag';
-import { GoldLine } from '@/components/tianyan/GoldLine';
-import { SubHeader } from '@/components/tianyan/SubHeader';
-import Link from 'next/link';
+'use client';
 
-const nameData = {
-  surname: '张',
-  fullName: '悦宁',
-  wuxingChars: [
-    { char: '悦', element: '火' as const },
-    { char: '宁', element: '火' as const },
-  ],
-  score: 92,
-  sancai: '吉',
-  meaning: '静谧',
-  xiYong: ['水', '木'],
-  analysis: '名字整体火旺，与喜用神水木形成相生关系：木生火',
-  buYiPath: ['木(喜)', '火(名)', '土(生)'],
-  poem: {
-    source: '《诗经·郑风》',
-    text: '风雨潇潇，鸡鸣胶胶。既见君子，云胡不瘳。',
-    yueMeaning: '"宁"取"安宁"之意，"悦"取"喜悦"之意',
-  },
-  scores: [
-    { label: '喜用神匹配', stars: 4, score: 85 },
-    { label: '三才五格', stars: 4, score: 90 },
-    { label: '音韵和谐', stars: 5, score: 95 },
-    { label: '寓意深度', stars: 4, score: 88 },
-    { label: '重名风险', stars: 3, score: 0, extra: '低' },
-    { label: '谐音检测', stars: 5, score: 0, extra: '无风险' },
-  ],
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { SubHeader } from '@/components/tianyan/SubHeader';
+import { WuxingTag } from '@/components/tianyan/WuxingTag';
+import { GoldLine } from '@/components/tianyan/GoldLine';
+import type { NameItem, BaziData } from '@/lib/storage';
+
+const WUXING_COLORS: Record<string, string> = {
+  '金': 'text-gold-400',
+  '木': 'text-green-400',
+  '水': 'text-blue-400',
+  '火': 'text-red-400',
+  '土': 'text-amber-300',
 };
 
-function StarRating({ count }: { count: number }) {
+const WUXING_BG: Record<string, string> = {
+  '金': 'bg-gold-400/20',
+  '木': 'bg-green-400/20',
+  '水': 'bg-blue-400/20',
+  '火': 'bg-red-400/20',
+  '土': 'bg-amber-300/20',
+};
+
+const SCORE_ITEMS = [
+  { key: 'xiYongMatch', label: '喜用神匹配', icon: 'fa-solid fa-yin-yang' },
+  { key: 'sancaiScore', label: '三才五格', icon: 'fa-solid fa-star' },
+  { key: 'yinyunScore', label: '音韵和谐', icon: 'fa-solid fa-music' },
+  { key: 'meaningScore', label: '寓意深度', icon: 'fa-solid fa-book' },
+  { key: 'repeatRisk', label: '重名风险', icon: 'fa-solid fa-users' },
+  { key: 'homophoneRisk', label: '谐音检测', icon: 'fa-solid fa-ear-listen' },
+];
+
+function ScoreBar({ label, value, icon }: { label: string; value: number | string; icon: string }) {
+  const numVal = typeof value === 'number' ? value : 0;
+  const stars = Math.round(numVal / 20);
   return (
-    <span className="inline-flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <i
-          key={i}
-          className={`fa-star text-xs ${i <= count ? 'fa-solid text-gold-400' : 'fa-regular text-ink-600'}`}
-        />
-      ))}
-    </span>
+    <div className="flex items-center gap-3 py-2">
+      <i className={`${icon} text-ink-400 w-5 text-center text-xs`} />
+      <span className="text-ink-200 text-sm w-20">{label}</span>
+      <div className="flex gap-0.5 flex-1">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <i
+            key={i}
+            className={`fa-solid fa-star text-xs ${i <= stars ? 'text-gold-400' : 'text-ink-600'}`}
+          />
+        ))}
+      </div>
+      <span className="text-ink-100 text-sm font-mono w-8 text-right">{numVal || '—'}</span>
+    </div>
   );
 }
 
 export default function NameDetailPage() {
+  const router = useRouter();
+  const [name, setName] = useState<NameItem | null>(null);
+  const [bazi, setBazi] = useState<BaziData | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('tianyan_selected_name');
+    const baziRaw = localStorage.getItem('tianyan_bazi');
+    if (raw) {
+      try { setName(JSON.parse(raw)); } catch { /* ignore */ }
+    }
+    if (baziRaw) {
+      try { setBazi(JSON.parse(baziRaw)); } catch { /* ignore */ }
+    }
+  }, []);
+
+  const handleCopy = async () => {
+    if (!name) return;
+    try {
+      await navigator.clipboard.writeText(`${name.surname}${name.givenName}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore */ }
+  };
+
+  if (!name) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ink-900">
+        <div className="text-ink-400 text-sm">
+          未找到名字数据
+          <button onClick={() => router.push('/name/result')} className="ml-2 text-gold-400 underline">
+            返回结果
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-ink-900">
-      <SubHeader
-        title="名字解读"
-        backHref="/name/result"
-        rightAction={
-          <button className="text-ink-400 hover:text-gold-400 transition-colors">
-            <i className="fa-solid fa-share-nodes" />
-          </button>
-        }
-      />
+      <SubHeader title="名字解读" backHref="/name/result" rightAction={
+        <button className="text-ink-300 hover:text-gold-400 transition-colors">
+          <i className="fa-solid fa-share-nodes" />
+        </button>
+      } />
       <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8">
         {/* 名字标题区 */}
-        <div className="jinming-card rounded-xl p-6 text-center">
-          <p className="font-serif text-4xl text-ink-50 mb-3">
-            {nameData.surname} {nameData.fullName}
-          </p>
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <WuxingTag element="木" />
-            {nameData.wuxingChars.map((c, i) => (
-              <WuxingTag key={i} element={c.element}>{c.char}({c.element})</WuxingTag>
-            ))}
+        <div className="jinming-card rounded-xl p-6 animate-fade-in-up stagger-1 text-center">
+          <h1 className="text-4xl font-serif text-ink-100 mb-2" style={{ textShadow: '0 0 20px rgba(200,164,92,0.15)' }}>
+            {name.surname} · {name.givenName}
+          </h1>
+          <div className="flex justify-center gap-2 mb-4">
+            {[name.surname, ...name.givenName.split('')].map((char, i) => {
+              if (i === 0) return null; // 姓氏不标五行
+              const wx = name.wuxing[i - 1] || '';
+              return <WuxingTag key={i} wuxing={wx} />;
+            })}
           </div>
-          <div className="flex items-center justify-center gap-6 text-sm">
-            <div>
-              <p className="text-gold-400 font-mono text-2xl font-semibold glow-gold-sm">{nameData.score}</p>
-              <p className="text-ink-400 text-xs">综合分</p>
+          <div className="flex justify-center gap-4 sm:gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-mono text-gold-400" style={{ textShadow: '0 0 12px rgba(200,164,92,0.3)' }}>
+                {name.score}
+              </div>
+              <div className="text-ink-400 text-xs mt-0.5">综合分</div>
             </div>
-            <div>
-              <p className="text-ink-100 text-lg">{nameData.sancai}</p>
-              <p className="text-ink-400 text-xs">三才</p>
+            <div className="text-center">
+              <div className="text-lg text-gold-400">{name.sancai}</div>
+              <div className="text-ink-400 text-xs mt-0.5">三才</div>
             </div>
-            <div>
-              <p className="text-ink-100 text-lg">{nameData.meaning}</p>
-              <p className="text-ink-400 text-xs">寓意</p>
+            <div className="text-center">
+              <div className="text-lg text-gold-400">{name.style}</div>
+              <div className="text-ink-400 text-xs mt-0.5">寓意</div>
             </div>
           </div>
         </div>
 
-        <GoldLine className="my-6" />
+        <GoldLine />
 
         {/* 五行补益分析 */}
-        <div className="jinming-card rounded-xl p-5">
-          <h3 className="font-serif text-base text-ink-100 mb-4">五行补益分析</h3>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-ink-400 text-xs">喜用神：</span>
-            {nameData.xiYong.map((x, i) => (
-              <span key={i} className="px-2 py-0.5 rounded bg-gold-400/15 text-gold-400 text-sm">{x}</span>
+        <div className="jinming-card rounded-xl p-5 animate-fade-in-up stagger-2">
+          <h2 className="text-base font-serif text-gold-400 mb-4 flex items-center gap-2">
+            <i className="fa-solid fa-fire-flame-curved text-sm" />
+            五行补益分析
+          </h2>
+          {bazi && (
+            <div className="mb-3">
+              <span className="text-ink-300 text-sm">喜用神：</span>
+              {bazi.xiYong.map((wx) => (
+                <span key={wx} className={`inline-block px-2 py-0.5 rounded text-sm ml-1 ${WUXING_BG[wx]} ${WUXING_COLORS[wx]}`}>
+                  {wx}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1 text-sm text-ink-200">
+            {name.givenName.split('').map((char, i) => (
+              <p key={i}>
+                「{char}」字五行属
+                <span className={`font-semibold ${WUXING_COLORS[name.wuxing[i]] || 'text-ink-100'}`}>
+                  {name.wuxing[i]}
+                </span>
+              </p>
             ))}
           </div>
-          <p className="text-ink-300 text-sm mb-4">{nameData.analysis}</p>
-          <div className="flex items-center justify-center gap-2 text-sm">
-            {nameData.buYiPath.map((p, i) => (
-              <span key={i} className="flex items-center gap-2">
-                <span className="px-2 py-1 rounded bg-gold-400/10 text-gold-400">{p}</span>
-                {i < nameData.buYiPath.length - 1 && (
-                  <i className="fa-solid fa-arrow-right text-ink-500 text-xs" />
-                )}
+          {name.analysis && (
+            <p className="text-ink-200 text-sm mt-3">{name.analysis}</p>
+          )}
+          {/* 补益路径 */}
+          <div className="flex items-center gap-2 mt-4 p-3 rounded-lg bg-ink-800/30">
+            {bazi?.xiYong.map((wx, i) => (
+              <span key={i} className="flex items-center gap-1">
+                {i > 0 && <i className="fa-solid fa-arrow-right text-ink-500 text-xs" />}
+                <span className={`px-2 py-1 rounded ${WUXING_BG[wx]} ${WUXING_COLORS[wx]} text-sm`}>{wx}(喜)</span>
+              </span>
+            ))}
+            <i className="fa-solid fa-arrow-right text-ink-500 text-xs" />
+            {name.wuxing.map((wx, i) => (
+              <span key={i} className="flex items-center gap-1">
+                {i > 0 && <i className="fa-solid fa-arrow-right text-ink-500 text-xs" />}
+                <span className={`px-2 py-1 rounded ${WUXING_BG[wx]} ${WUXING_COLORS[wx]} text-sm`}>{wx}(名)</span>
               </span>
             ))}
           </div>
         </div>
 
-        <GoldLine className="my-6" />
+        <GoldLine />
 
         {/* 诗词出处 */}
-        <div className="jinming-card rounded-xl p-5">
-          <h3 className="font-serif text-base text-ink-100 mb-4">诗词出处</h3>
-          <p className="text-gold-400/80 text-sm italic mb-2">{nameData.poem.source}</p>
-          <p className="text-ink-300 text-sm italic mb-3">&ldquo;{nameData.poem.text}&rdquo;</p>
-          <p className="text-ink-400 text-xs">{nameData.poem.yueMeaning}</p>
-        </div>
-
-        <GoldLine className="my-6" />
+        {name.poem && (
+          <>
+            <div className="jinming-card rounded-xl p-5">
+              <h2 className="text-base font-serif text-gold-400 mb-4 flex items-center gap-2">
+                <i className="fa-solid fa-feather text-sm" />
+                诗词出处
+              </h2>
+              {name.poemSource && (
+                <p className="text-ink-300 text-sm mb-2 italic font-serif">{name.poemSource}</p>
+              )}
+              <blockquote className="text-ink-200 text-sm italic border-l-2 border-gold-400/20 pl-4 leading-relaxed">
+                「{name.poem}」
+              </blockquote>
+            </div>
+            <GoldLine />
+          </>
+        )}
 
         {/* 多维度评分 */}
-        <div className="jinming-card rounded-xl p-5">
-          <h3 className="font-serif text-base text-ink-100 mb-4">多维度评分</h3>
-          <div className="space-y-3">
-            {nameData.scores.map((s, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-ink-300 text-sm w-20">{s.label}</span>
-                <StarRating count={s.stars} />
-                <span className="text-ink-400 text-sm font-mono">
-                  {s.extra || s.score}
-                </span>
-              </div>
-            ))}
+        <div className="jinming-card rounded-xl p-5 animate-fade-in-up stagger-3">
+          <h2 className="text-base font-serif text-gold-400 mb-4 flex items-center gap-2">
+            <i className="fa-solid fa-chart-bar text-sm" />
+            多维度评分
+          </h2>
+          <div className="divide-y divide-gold-400/8">
+            <ScoreBar label="喜用神匹配" value={name.xiYongMatch ?? 85} icon="fa-solid fa-yin-yang" />
+            <ScoreBar label="三才五格" value={name.sancaiScore ?? 90} icon="fa-solid fa-star" />
+            <ScoreBar label="音韵和谐" value={name.yinyunScore ?? 95} icon="fa-solid fa-music" />
+            <ScoreBar label="寓意深度" value={name.meaningScore ?? 88} icon="fa-solid fa-book" />
+            <ScoreBar label="重名风险" value={name.repeatRisk === '低' ? 90 : 50} icon="fa-solid fa-users" />
+            <ScoreBar label="谐音检测" value={name.homophoneRisk === '无风险' ? 100 : 60} icon="fa-solid fa-ear-listen" />
           </div>
         </div>
 
         {/* 底部操作栏 */}
-        <div className="flex gap-4 mt-8 mb-6">
-          <button className="flex-1 py-3 rounded-lg border border-gold-400/20 text-ink-300 hover:border-gold-400/40 hover:text-gold-400 transition-all text-sm">
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={() => {
+              const favs = JSON.parse(localStorage.getItem('tianyan_favorites') || '[]');
+              const key = `${name.surname}${name.givenName}`;
+              if (!favs.includes(key)) {
+                favs.push(key);
+                localStorage.setItem('tianyan_favorites', JSON.stringify(favs));
+              }
+            }}
+            className="flex-1 py-3 rounded-lg border border-gold-400/20 text-gold-400 text-sm font-medium hover:bg-gold-400/5 transition-all"
+          >
             <i className="fa-regular fa-heart mr-1.5" />收藏
           </button>
-          <button className="flex-1 py-3 rounded-lg border border-gold-400/20 text-ink-300 hover:border-gold-400/40 hover:text-gold-400 transition-all text-sm">
-            <i className="fa-regular fa-copy mr-1.5" />复制名字
+          <button
+            onClick={handleCopy}
+            className="flex-1 py-3 rounded-lg border border-gold-400/20 text-gold-400 text-sm font-medium hover:bg-gold-400/5 transition-all"
+          >
+            <i className="fa-regular fa-copy mr-1.5" />{copied ? '已复制' : '复制名字'}
           </button>
         </div>
 
-        <p className="text-ink-500 text-xs text-center mb-8">
+        {/* 合规标识 */}
+        <p className="text-ink-500 text-xs text-center mt-4">
           以上内容由AI生成，仅供传统文化参考
         </p>
       </main>
