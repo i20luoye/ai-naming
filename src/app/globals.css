@@ -336,6 +336,18 @@
     50% { border-color: rgba(200, 164, 92, 0.4); }
   }
 
+  /* 呼吸动画 */
+  @keyframes breathe {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.03); }
+  }
+
+  /* 最终步骤按钮脉冲 */
+  @keyframes final-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(200, 164, 92, 0.3); }
+    50% { box-shadow: 0 0 0 12px rgba(200, 164, 92, 0); }
+  }
+
   /* 淡入上移动画 */
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
