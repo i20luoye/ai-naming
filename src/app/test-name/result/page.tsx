@@ -203,7 +203,11 @@ export default function TestNameResultPage() {
   const strokeDashoffset = circumference - (animScore / 100) * circumference;
   const repeatLevel = result.repeatLevel || '中等';
   const repeatRisk = result.repeatRisk || 50;
-  const rarityBarPct = repeatLevel === '极低' ? 95 : repeatLevel === '低' ? 75 : repeatLevel === '中' ? 50 : repeatLevel === '较高' ? 30 : 15;
+  // 独特性分数 = 100 - 重名率（重名越低=独特性越高=越好）
+  const uniquenessScore = 100 - Math.round(repeatRisk);
+  // 根据独特性分数重新判定等级
+  const uniqLevel = uniquenessScore >= 85 ? '极低' : uniquenessScore >= 65 ? '低' : uniquenessScore >= 45 ? '中' : uniquenessScore >= 25 ? '较高' : '极高';
+  const rarityBarPct = Math.max(5, uniquenessScore);
   const dimensions = [
     { name: '五行匹配', score: result.wuxingMatch, Icon: Orbit, grade: wxMatchGrade, key: 'wx', desc: result.wuxingMatch >= 80 ? '喜用神匹配，五行补益有效' : result.wuxingMatch >= 60 ? '五行有补但非最优' : '五行与喜用神匹配偏弱' },
     { name: '音韵和谐', score: result.yinyunScore, Icon: Music, grade: yinyunGrade, key: 'yy', desc: result.yinyunScore >= 80 ? '声调起伏有致，韵律优美' : result.yinyunScore >= 60 ? '声调平稳，朗朗上口' : '声调单一，韵律欠佳' },
@@ -431,11 +435,11 @@ export default function TestNameResultPage() {
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><Fingerprint size={12} className="text-gold-400" /></div>
                 <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">重名风险</div>
-                <span className={`ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold ${getRarityCls(repeatLevel)}`}>{repeatLevel}</span>
+                <span className={`ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold ${getRarityCls(uniqLevel)}`}>{uniqLevel}重名</span>
               </div>
               <div className="flex items-center gap-4 mb-4">
-                <div className="flex-1"><div className="h-2 rounded bg-gold-400/[0.06] overflow-hidden"><div ref={rarityBarRef} className="h-full rounded" style={{ width: 0, background: `linear-gradient(90deg, rgba(${WX_RGB[nameWxList[0] || '金']},0.2), ${getRarityBarColor(repeatLevel)})` }} data-width={`${rarityBarPct}%`} /></div></div>
-                <span className="font-serif text-2xl font-bold" style={{ color: getRarityBarColor(repeatLevel) }}>{Math.round(repeatRisk)}</span>
+                <div className="flex-1"><div className="h-2 rounded bg-gold-400/[0.06] overflow-hidden"><div ref={rarityBarRef} className="h-full rounded" style={{ width: 0, background: `linear-gradient(90deg, rgba(${WX_RGB[nameWxList[0] || '金']},0.2), ${getRarityBarColor(uniqLevel)})` }} data-width={`${rarityBarPct}%`} /></div></div>
+                <span className="font-serif text-2xl font-bold" style={{ color: getRarityBarColor(uniqLevel) }}>{uniquenessScore}</span>
               </div>
               <div className="text-[11px] mb-3 text-ink-300">预估重名率：{repeatLevel}</div>
               <div className="flex items-start gap-2"><Info size={10} className="text-ink-300 mt-0.5 flex-shrink-0" /><span className="text-[11px] leading-relaxed text-ink-300">{getRarityDesc(repeatLevel)}</span></div>
