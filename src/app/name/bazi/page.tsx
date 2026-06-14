@@ -112,7 +112,7 @@ interface ApiBaziResult {
   wuxingPercent: Record<string, number>;
   dayMaster: string;
   dayMasterWuxing: string;
-  strength: '旺' | '弱';
+  strength: string;
   xiYong: string[];
   jiShen: string[];
   pattern: string;
@@ -147,16 +147,19 @@ export default function NameBaziPage() {
       setInputData(input);
 
       // Try to load cached bazi data from localStorage
+      // Invalidate old cache (pre lunar-javascript era) by checking wuxingCount exists
       const cachedRaw = localStorage.getItem('tianyan_bazi');
       if (cachedRaw) {
         try {
           const cached = JSON.parse(cachedRaw) as ApiBaziResult;
-          if (cached.pillars && cached.pillars.length === 4) {
+          if (cached.pillars && cached.pillars.length === 4 && cached.wuxingCount) {
             setBazi(cached);
             setLoading(false);
             return;
           }
-        } catch { /* ignore */ }
+        } catch { /* ignore corrupted cache */ }
+        // Old cache without wuxingCount — remove it
+        localStorage.removeItem('tianyan_bazi');
       }
 
       // Call API
@@ -246,7 +249,7 @@ export default function NameBaziPage() {
   }
 
   // ===== Error state =====
-  if (loadError || !bazi) {
+  if (loadError || !bazi || !bazi.pillars) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-ink-900 px-6">
         <AlertCircle className="w-10 h-10 text-vermilion-light mb-4" />
@@ -260,7 +263,7 @@ export default function NameBaziPage() {
 
   // ===== Derived data =====
   const isUnknownTime = inputData?.unknownTime ?? false;
-  const isStrong = bazi.strength === '旺';
+  const isStrong = bazi.strength === '旺' || bazi.strength === '偏旺';
 
   // Count wuxing from pillars (simplified raw count for display)
   const wxRawCount: Record<string, number> = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
@@ -270,10 +273,11 @@ export default function NameBaziPage() {
   }
 
   // Strength calculation for meter (using wuxingCount from API)
-  const totalWxCount = Object.values(bazi.wuxingCount).reduce((a, b) => a + b, 0);
+  const wxCount = bazi.wuxingCount || {};
+  const totalWxCount = Object.values(wxCount).reduce((a: number, b: number) => a + b, 0);
   const dayWx = bazi.dayMasterWuxing;
   const shengWx = WUXING_BEI_SHENG[dayWx];
-  const helpCount = (bazi.wuxingCount[dayWx] || 0) + (bazi.wuxingCount[shengWx] || 0);
+  const helpCount = (wxCount[dayWx] || 0) + (wxCount[shengWx] || 0);
   const restrainCount = totalWxCount - helpCount;
   const strengthRatio = totalWxCount > 0 ? helpCount / totalWxCount : 0.5;
   const strengthPct = Math.round(strengthRatio * 100);
@@ -325,7 +329,7 @@ export default function NameBaziPage() {
         zhiWuxing: p.zhiWuxing,
         cangGan: p.cangGan,
       })),
-      wuxingPercent: bazi.wuxingPercent,
+      wuxingPercent: bazi.wuxingPercent || {},
       dayMaster: bazi.dayMaster,
       dayMasterWuxing: bazi.dayMasterWuxing,
       strength: bazi.strength,
