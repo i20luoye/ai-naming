@@ -168,6 +168,8 @@ export interface TestNameResult {
 
 // ===== 存储键 =====
 
+const STORAGE_VERSION = 2; // 数据版本号，结构变更时递增
+
 const KEYS = {
   INPUT: 'tianyan_input',
   BAZI: 'tianyan_bazi',
@@ -175,6 +177,7 @@ const KEYS = {
   NAMES: 'tianyan_names',
   TEST_INPUT: 'tianyan_test_input',
   TEST_RESULT: 'tianyan_test_result',
+  VERSION: 'tianyan_version',
 } as const;
 
 // ===== 通用读写 =====
@@ -183,8 +186,12 @@ function read<T>(key: string): T | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed as T;
   } catch {
+    // 数据损坏，清除该条目
+    try { localStorage.removeItem(key); } catch { /* ignore */ }
     return null;
   }
 }
@@ -194,7 +201,14 @@ function write<T>(key: string, data: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch {
-    // localStorage 满了或不可用
+    // localStorage 满了或不可用（如隐身模式）
+    // 尝试清理旧数据腾出空间
+    try {
+      clearNamingFlow();
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch {
+      // 彻底无法写入，静默失败
+    }
   }
 }
 
@@ -205,6 +219,30 @@ function remove(key: string): void {
   } catch {
     // ignore
   }
+}
+
+/** 检查数据版本，版本不匹配时清除旧数据 */
+function checkVersion(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const version = localStorage.getItem(KEYS.VERSION);
+    if (!version || parseInt(version) < STORAGE_VERSION) {
+      // 版本不匹配，清除所有天衍数据
+      Object.values(KEYS).forEach(key => {
+        if (key !== KEYS.VERSION) {
+          try { localStorage.removeItem(key); } catch { /* ignore */ }
+        }
+      });
+      localStorage.setItem(KEYS.VERSION, String(STORAGE_VERSION));
+    }
+  } catch {
+    // localStorage 不可用，静默失败
+  }
+}
+
+// 初始化时检查版本（仅客户端）
+if (typeof window !== 'undefined') {
+  checkVersion();
 }
 
 // ===== 起名流程 =====

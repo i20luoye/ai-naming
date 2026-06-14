@@ -1127,18 +1127,13 @@ export default function NameResultPage() {
                 </span>
               </div>
               <p className="text-[11px] mb-3 text-center max-w-xs" style={{ color: '#a89e8e' }}>
-                解锁后查看全部10个名字、详细命理分析、专家点评及三才五格完整报告
+                解锁后查看全部名字、详细五行分析、专家点评及三才五格完整报告
               </p>
               <div className="flex items-center gap-3 mb-3">
-                <span className="text-xs line-through" style={{ color: '#a89e8e' }}>¥199</span>
-                <button className="btn-vermilion px-7 py-2.5 rounded-sm font-serif text-[12px] tracking-[0.15em] flex items-center gap-2">
+                <button className="btn-vermilion px-7 py-2.5 rounded-sm font-serif text-[12px] tracking-[0.15em] flex items-center gap-2" disabled style={{ opacity: 0.7 }}>
                   <Unlock className="w-2.5 h-2.5" />
-                  ¥29.9 立即解锁
+                  即将上线
                 </button>
-              </div>
-              <div className="text-[10px] flex items-center gap-1" style={{ color: '#a89e8e' }}>
-                <Users className="w-2 h-2" style={{ color: '#8c6c24' }} />
-                已有 <span className="font-serif" style={{ color: '#c8a45c' }}>3,862</span> 人解锁
               </div>
             </div>
           </div>

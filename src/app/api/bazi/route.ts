@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateBazi } from '@/lib/bazi';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // IP 限流
+    const ip = getClientIp(request);
+    const rateLimit = checkRateLimit(ip, { maxRequests: 20, windowMs: 60 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: '请求过于频繁，请稍后再试' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.resetTime - Date.now()) / 1000)) } }
+      );
+    }
+
     const body = await request.json();
-    const { birthDate, birthTime } = body;
+    const { birthDate, birthTime, longitude } = body;
 
     if (!birthDate || !birthTime) {
       return NextResponse.json(
@@ -13,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = calculateBazi(birthDate, birthTime);
+    const result = calculateBazi(birthDate, birthTime, longitude);
 
     return NextResponse.json({
       success: true,
