@@ -185,9 +185,13 @@ export default function TestNamePage() {
   }, []);
 
   const handleNameInput = useCallback((val: string) => {
-    const trimmed = val.substring(0, 6);
-    setFullName(trimmed);
+    // 组字期间只更新显示，不做截断和解析
+    setFullName(val);
     if (!isComposingRef.current) {
+      // 非组字状态：过滤非中文字符，截断，解析
+      const chineseOnly = val.replace(/[^\u4e00-\u9fff]/g, '');
+      const trimmed = chineseOnly.substring(0, 6);
+      setFullName(trimmed);
       parseName(trimmed);
     }
   }, [parseName]);
@@ -400,12 +404,16 @@ export default function TestNamePage() {
                         value={fullName}
                         onChange={(e) => handleNameInput(e.target.value)}
                         onCompositionStart={() => { isComposingRef.current = true; }}
-                        onCompositionEnd={() => {
+                        onCompositionEnd={(e) => {
                           isComposingRef.current = false;
-                          parseName(fullName);
+                          // 组字结束：过滤非中文，截断，解析
+                          const val = (e.target as HTMLInputElement).value;
+                          const chineseOnly = val.replace(/[^\u4e00-\u9fff]/g, '');
+                          const trimmed = chineseOnly.substring(0, 6);
+                          setFullName(trimmed);
+                          parseName(trimmed);
                         }}
                         placeholder="如：张晏如"
-                        maxLength={6}
                         autoComplete="off"
                         className="input-ritual w-full px-5 py-4 rounded-sm text-lg font-serif tracking-widest"
                       />
