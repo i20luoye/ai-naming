@@ -185,10 +185,11 @@ export default function TestNamePage() {
   }, []);
 
   const handleNameInput = useCallback((val: string) => {
-    if (isComposingRef.current) return; // 组字期间不更新 state，避免打断 IME
     const trimmed = val.substring(0, 6);
     setFullName(trimmed);
-    parseName(trimmed);
+    if (!isComposingRef.current) {
+      parseName(trimmed);
+    }
   }, [parseName]);
 
   // Compute wuxing for each char
@@ -399,11 +400,9 @@ export default function TestNamePage() {
                         value={fullName}
                         onChange={(e) => handleNameInput(e.target.value)}
                         onCompositionStart={() => { isComposingRef.current = true; }}
-                        onCompositionEnd={(e) => {
+                        onCompositionEnd={() => {
                           isComposingRef.current = false;
-                          const val = (e.target as HTMLInputElement).value.substring(0, 6);
-                          setFullName(val);
-                          parseName(val);
+                          parseName(fullName);
                         }}
                         placeholder="如：张晏如"
                         maxLength={6}
