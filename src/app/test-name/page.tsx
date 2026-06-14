@@ -159,6 +159,7 @@ export default function TestNamePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const isComposingRef = useRef(false);
 
   // Derived: is name valid Chinese
   const isNameValid = fullName.length >= 2 && /^[\u4e00-\u9fff]+$/.test(fullName);
@@ -184,6 +185,7 @@ export default function TestNamePage() {
   }, []);
 
   const handleNameInput = useCallback((val: string) => {
+    if (isComposingRef.current) return; // 组字期间不更新 state，避免打断 IME
     const trimmed = val.substring(0, 6);
     setFullName(trimmed);
     parseName(trimmed);
@@ -396,6 +398,13 @@ export default function TestNamePage() {
                         type="text"
                         value={fullName}
                         onChange={(e) => handleNameInput(e.target.value)}
+                        onCompositionStart={() => { isComposingRef.current = true; }}
+                        onCompositionEnd={(e) => {
+                          isComposingRef.current = false;
+                          const val = (e.target as HTMLInputElement).value.substring(0, 6);
+                          setFullName(val);
+                          parseName(val);
+                        }}
                         placeholder="如：张晏如"
                         maxLength={6}
                         autoComplete="off"
