@@ -6,12 +6,14 @@ import Link from 'next/link';
 import { SubHeader } from '@/components/tianyan/SubHeader';
 import { WuxingTag } from '@/components/tianyan/WuxingTag';
 import { GoldLine } from '@/components/tianyan/GoldLine';
-import { loadTestResult, type TestNameResult } from '@/lib/storage';
+import { loadTestResult, type TestNameResult, type CharAnalysis, type Suggestion } from '@/lib/storage';
 import {
   Orbit, BarChart3, Grid3X3, Fingerprint, Lightbulb,
   Copy, ArrowUp, PenLine, Search, Info,
   AlertTriangle, CheckCircle, XCircle, MinusCircle,
-  Music, Gem, Leaf, Droplets, Flame, Mountain
+  Music, Gem, Leaf, Droplets, Flame, Mountain,
+  BookOpen, ChevronDown, ChevronUp, PenTool, MessageSquareQuote,
+  Volume2, Shield
 } from 'lucide-react';
 
 const WX_COLORS: Record<string, string> = { '金':'#e8d09a','木':'#81c784','水':'#64b5f6','火':'#d4726a','土':'#d4c4a0' };
@@ -88,12 +90,34 @@ const REL_LABELS: Record<string, string> = { sheng: '↓ 生', ke: '✕ 克', sa
 const REL_COLORS: Record<string, string> = { sheng: '#81c784', ke: '#d4726a', same: '#a89e8e', beisheng: '#81c784', neutral: '#a89e8e' };
 
 const ANCHOR_ITEMS = [
+  { id: 'charAnalysis', label: '字义解析', Icon: BookOpen },
   { id: 'wxMatch', label: '五行匹配', Icon: Orbit },
   { id: 'score', label: '综合评分', Icon: BarChart3 },
   { id: 'ge', label: '三才五格', Icon: Grid3X3 },
+  { id: 'phonetic', label: '音韵分析', Icon: Volume2 },
+  { id: 'homophone', label: '谐音检测', Icon: Shield },
   { id: 'rarity', label: '重名风险', Icon: Fingerprint },
-  { id: 'advice', label: '综合建议', Icon: Lightbulb },
+  { id: 'advice', label: '优化建议', Icon: Lightbulb },
 ];
+
+/* ─── 折叠卡片 ─── */
+function CollapseCard({ title, icon: Icon, children, defaultOpen = false, badge }: {
+  title: string; icon: React.ElementType; children: React.ReactNode; defaultOpen?: boolean;
+  badge?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-sm overflow-hidden border border-gold-400/8 bg-gold-400/[0.015]">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-gold-400/[0.03] transition-colors text-left">
+        <Icon size={13} className="text-gold-400 flex-shrink-0" />
+        <span className="font-serif text-[13px] font-semibold tracking-wider text-gold-200 flex-1">{title}</span>
+        {badge}
+        {open ? <ChevronUp size={14} className="text-ink-300" /> : <ChevronDown size={14} className="text-ink-300" />}
+      </button>
+      {open && <div className="px-4 pb-4 pt-1">{children}</div>}
+    </div>
+  );
+}
 
 export default function TestNameResultPage() {
   const router = useRouter();
@@ -109,7 +133,7 @@ export default function TestNameResultPage() {
 
   useEffect(() => {
     const raw = localStorage.getItem('tianyan_test_result');
-    if (raw) { try { setResult(JSON.parse(raw)); } catch {} }
+    if (raw) { try { setResult(JSON.parse(raw)); } catch { /* */ } }
     const t = setTimeout(() => setLoading(false), 1800);
     return () => clearTimeout(t);
   }, []);
@@ -154,7 +178,21 @@ export default function TestNameResultPage() {
   const copyResult = useCallback(() => {
     if (!result) return;
     const g = getGrade(result.score);
-    const lines = ['【天衍·测名结果】', `姓名：${result.fullName}`, `综合评分：${result.score}（${g.label}）`, '', `— 五行匹配：${result.wuxingMatch}`, `— 音韵和谐：${result.yinyunScore}`, '', `名字五行：${result.nameWuxing}`, `重名风险：${result.repeatLevel || '中等'}`];
+    const lines = [
+      '【天衍·测名结果】',
+      `姓名：${result.fullName}`,
+      `综合评分：${result.score}（${g.label}）`,
+      '',
+      `五行匹配：${result.wuxingMatch} · ${getGrade(result.wuxingMatch).label}`,
+      `音韵和谐：${result.yinyunScore} · ${getGrade(result.yinyunScore).label}`,
+      ...(result.meaningDepth ? [`寓意深度：${result.meaningDepth} · ${getGrade(result.meaningDepth).label}`] : []),
+      ...(result.wugeScore ? [`三才五格：${result.wugeScore} · ${getGrade(result.wugeScore).label}`] : []),
+      '',
+      ...(result.wuxingBenefit?.description ? [`五行补益：${result.wuxingBenefit.description}`] : []),
+      ...(result.overallComment ? ['', result.overallComment] : []),
+      '',
+      '—— 以上内容由AI生成，仅供传统文化参考 ——',
+    ];
     const text = lines.join('\n');
     if (navigator.clipboard) { navigator.clipboard.writeText(text).then(() => setToast('结果已复制到剪贴板')).catch(() => {}); }
     setTimeout(() => setToast(''), 2500);
@@ -164,6 +202,7 @@ export default function TestNameResultPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
+  /* ─── 加载态 ─── */
   if (loading) {
     return (
       <div className="fixed inset-0 z-[9998] bg-ink-900 flex flex-col items-center justify-center">
@@ -176,7 +215,7 @@ export default function TestNameResultPage() {
         </div>
         <div className="font-serif text-lg tracking-[0.3em] mt-8 mb-3 text-vermilion-light animate-pulse">正在评测</div>
         <div className="flex items-center gap-2 text-xs text-ink-300">
-          <span className="animate-pulse">排八字</span><span>·</span><span className="opacity-25">析五行</span><span className="opacity-25">·</span><span className="opacity-25">评分</span>
+          <span className="animate-pulse">排八字</span><span>·</span><span className="opacity-40">析五行</span><span className="opacity-40">·</span><span className="opacity-40">评分</span>
         </div>
       </div>
     );
@@ -192,9 +231,12 @@ export default function TestNameResultPage() {
     );
   }
 
+  /* ─── 数据预处理 ─── */
   const grade = getGrade(result.score);
   const wxMatchGrade = getGrade(result.wuxingMatch);
   const yinyunGrade = getGrade(result.yinyunScore);
+  const meaningGrade = getGrade(result.meaningDepth || result.score);
+  const wugeGrade = getGrade(result.wugeScore || result.score);
   const wuxingEntries = Object.entries(result.wuxing || {}).sort((a, b) => b[1] - a[1]);
   const nameChars = result.fullName?.split('') || [];
   const nameWxList = Array.isArray(result.nameWuxing) ? result.nameWuxing : (typeof result.nameWuxing === 'string' ? result.nameWuxing.split(/[→·\-\s]+/).map((s: string) => s.trim()).filter(Boolean) : []);
@@ -203,15 +245,26 @@ export default function TestNameResultPage() {
   const strokeDashoffset = circumference - (animScore / 100) * circumference;
   const repeatLevel = result.repeatLevel || '中等';
   const repeatRisk = result.repeatRisk || 50;
-  // 独特性分数 = 100 - 重名率（重名越低=独特性越高=越好）
   const uniquenessScore = 100 - Math.round(repeatRisk);
-  // 根据独特性分数重新判定等级
   const uniqLevel = uniquenessScore >= 85 ? '极低' : uniquenessScore >= 65 ? '低' : uniquenessScore >= 45 ? '中' : uniquenessScore >= 25 ? '较高' : '极高';
   const rarityBarPct = Math.max(5, uniquenessScore);
+
+  const characterAnalysis: CharAnalysis[] = result.characterAnalysis || [];
+  const phoneticAnalysis = result.phoneticAnalysis;
+  const homophoneCheck = result.homophoneCheck;
+  const wuxingBenefit = result.wuxingBenefit;
+  const charFrequency = result.charFrequency || [];
+  const suggestions: Suggestion[] = result.suggestions || [];
+
   const dimensions = [
-    { name: '五行匹配', score: result.wuxingMatch, Icon: Orbit, grade: wxMatchGrade, key: 'wx', desc: result.wuxingMatch >= 80 ? '喜用神匹配，五行补益有效' : result.wuxingMatch >= 60 ? '五行有补但非最优' : '五行与喜用神匹配偏弱' },
-    { name: '音韵和谐', score: result.yinyunScore, Icon: Music, grade: yinyunGrade, key: 'yy', desc: result.yinyunScore >= 80 ? '声调起伏有致，韵律优美' : result.yinyunScore >= 60 ? '声调平稳，朗朗上口' : '声调单一，韵律欠佳' },
-  ];
+    { name: '五行匹配', score: result.wuxingMatch, Icon: Orbit, grade: wxMatchGrade, key: 'wx' },
+    { name: '三才五格', score: result.wugeScore || 0, Icon: Grid3X3, grade: wugeGrade, key: 'wg' },
+    { name: '音韵和谐', score: result.yinyunScore, Icon: Music, grade: yinyunGrade, key: 'yy' },
+    { name: '寓意深度', score: result.meaningDepth || 0, Icon: BookOpen, grade: meaningGrade, key: 'my' },
+  ].filter(d => d.score > 0);
+
+  /* 兼容：旧 tones 字段转换 */
+  const toneData = phoneticAnalysis?.tones || result.tones || [];
 
   return (
     <div className="min-h-screen flex flex-col bg-ink-900">
@@ -220,7 +273,7 @@ export default function TestNameResultPage() {
       <main className="flex-1 relative px-6 pt-4 pb-24" style={{ zIndex: 1 }}>
         <div className="max-w-3xl mx-auto">
 
-          {/* 英雄区 */}
+          {/* ═══ 英雄区 ═══ */}
           <section className="text-center mb-4 animate-fade-in-up relative">
             <div className="absolute inset-[-60px] bg-[radial-gradient(ellipse_at_center,rgba(196,86,74,0.06)_0%,rgba(196,86,74,0.02)_40%,transparent_70%)] pointer-events-none -z-10" />
             <div className="inline-block relative mb-5">
@@ -239,25 +292,27 @@ export default function TestNameResultPage() {
               {nameWxList.map((wx, i) => (<WuxingTag key={i} wuxing={wx}><WxIcon wx={wx} size={8} /> {wx}</WuxingTag>))}
               <span className={`inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold border ${gradeBadge(grade)}`}>{grade.label}</span>
             </div>
-            <div className="font-serif text-sm mb-3 text-ink-300">
-              {result.sancaiConfig && <span>三才{result.sancaiConfig}</span>}
-              {result.matchConclusion && <span> · {result.matchConclusion}</span>}
-            </div>
-            <button onClick={copyResult} className="text-ink-300 text-[11px] hover:text-gold-400 transition-colors px-3 py-1.5 rounded-sm"><Copy size={9} className="inline mr-1" />复制</button>
+            {result.sancaiConfig && (
+              <div className="font-serif text-sm mb-2 text-ink-300">三才 {result.sancaiConfig}</div>
+            )}
+            {result.matchConclusion && (
+              <div className="text-sm mb-3 text-ink-200">{result.matchConclusion}</div>
+            )}
+            <button onClick={copyResult} className="text-ink-300 text-[11px] hover:text-gold-400 transition-colors px-3 py-1.5 rounded-sm"><Copy size={9} className="inline mr-1" />复制结果</button>
           </section>
 
-          {/* 锚点导航 */}
+          {/* ═══ 锚点导航 ═══ */}
           <div className="rounded-sm mb-10 border border-vermilion/8 bg-vermilion/[0.02]">
             <div className="flex gap-0 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               {ANCHOR_ITEMS.map(item => (
-                <div key={item.id} onClick={() => scrollToAnchor(item.id)} className={`flex-shrink-0 px-4 py-2 text-[11px] cursor-pointer transition-all border-b-2 whitespace-nowrap tracking-wider ${activeAnchor === item.id ? 'text-vermilion-light border-vermilion' : 'text-ink-300 border-transparent hover:text-vermilion-light'}`}>
+                <div key={item.id} onClick={() => scrollToAnchor(item.id)} className={`flex-shrink-0 px-3 py-2 text-[11px] cursor-pointer transition-all border-b-2 whitespace-nowrap tracking-wider ${activeAnchor === item.id ? 'text-vermilion-light border-vermilion' : 'text-ink-300 border-transparent hover:text-vermilion-light'}`}>
                   <item.Icon size={9} className="inline mr-1 opacity-50" />{item.label}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 注意事项 */}
+          {/* ═══ 注意事项 ═══ */}
           {result.wuge?.some(g => g.luck === '凶') && (
             <section className="mb-10 animate-fade-in-up">
               <div className="rounded-sm p-5 md:p-6 bg-gradient-to-br from-vermilion/[0.04] to-vermilion/[0.01] border border-vermilion/12 relative overflow-hidden">
@@ -268,10 +323,10 @@ export default function TestNameResultPage() {
                 </div>
                 <div className="space-y-2.5">
                   {result.wuge.filter(g => g.luck === '凶').map((g, i) => (
-                    <div key={i} className="flex items-start gap-2"><Info size={10} className="text-vermilion-light mt-0.5 flex-shrink-0" /><span className="text-xs leading-relaxed text-ink-300">{g.name}数为{g.strokes}，五格属凶</span></div>
+                    <div key={i} className="flex items-start gap-2"><Info size={10} className="text-vermilion-light mt-0.5 flex-shrink-0" /><span className="text-xs leading-relaxed text-ink-300">{g.name}数为{g.strokes}，属凶数{g.meaning ? `——${g.meaning}` : ''}</span></div>
                   ))}
                   {result.score < 65 && (
-                    <div className="flex items-start gap-2"><Info size={10} className="text-vermilion-light mt-0.5 flex-shrink-0" /><span className="text-xs leading-relaxed text-ink-300">综合评分偏低，建议考虑更契合命理的名字</span></div>
+                    <div className="flex items-start gap-2"><Info size={10} className="text-vermilion-light mt-0.5 flex-shrink-0" /><span className="text-xs leading-relaxed text-ink-300">综合评分偏低，建议考虑更契合五行的名字</span></div>
                   )}
                 </div>
               </div>
@@ -280,8 +335,93 @@ export default function TestNameResultPage() {
 
           <GoldLine className="mb-10" />
 
-          {/* 五行匹配 */}
-          <section id="wxMatch" className="mb-10 animate-fade-in-up stagger-1">
+          {/* ═══ 1. 逐字解析 ═══ */}
+          <section id="charAnalysis" className="mb-10 animate-fade-in-up stagger-1">
+            <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none relative">
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><BookOpen size={12} className="text-gold-400" /></div>
+                <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">逐字解析</div>
+              </div>
+
+              {characterAnalysis.length > 0 ? (
+                <div className="space-y-4">
+                  {characterAnalysis.map((ch, i) => (
+                    <div key={i} className="rounded-sm p-4 bg-gradient-to-br from-gold-400/[0.04] to-gold-400/[0.01] border border-gold-400/10 relative overflow-hidden">
+                      <div className="flex items-start gap-4">
+                        {/* 大字 */}
+                        <div className="w-16 h-16 flex items-center justify-center rounded border font-serif text-[28px] font-bold flex-shrink-0" style={{ borderColor: `rgba(${WX_RGB[ch.wuxing] || WX_RGB['土']},0.3)`, background: `rgba(${WX_RGB[ch.wuxing] || WX_RGB['土']},0.08)`, color: WX_COLORS[ch.wuxing] || WX_COLORS['土'] }}>
+                          {ch.char}
+                        </div>
+                        {/* 详情 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="font-serif text-lg font-bold text-gold-200">{ch.char}</span>
+                            <span className="text-xs text-ink-300">{ch.pinyin}</span>
+                            <WuxingTag wuxing={ch.wuxing} className="text-[9px]" />
+                            <span className="text-[10px] text-ink-400 ml-1">{ch.strokes}画</span>
+                            <span className="text-[10px] text-ink-400">·</span>
+                            <span className="text-[10px] text-ink-400">{ch.structure}</span>
+                            {ch.radical && (
+                              <>
+                                <span className="text-[10px] text-ink-400">·</span>
+                                <span className="text-[10px] text-ink-400">{ch.radical}部</span>
+                              </>
+                            )}
+                          </div>
+                          <p className="text-[12px] leading-relaxed text-ink-200 mb-2">{ch.meaning}</p>
+                          {ch.classicRef && (
+                            <div className="rounded-sm p-3 bg-gold-400/[0.03] border border-gold-400/6">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <MessageSquareQuote size={10} className="text-gold-400" />
+                                <span className="text-[11px] font-semibold text-gold-200">经典出处</span>
+                                <span className="text-[10px] text-ink-300 ml-1">{ch.classicRef.source}</span>
+                              </div>
+                              <p className="font-serif text-[13px] text-gold-200/80 mb-1 leading-relaxed">「{ch.classicRef.quote}」</p>
+                              <p className="text-[10px] text-ink-300 leading-relaxed">{ch.classicRef.interpretation}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* 字间关系线 */}
+                      {i < characterAnalysis.length - 1 && (() => {
+                        const nextWx = characterAnalysis[i + 1].wuxing;
+                        const rel = getRelation(ch.wuxing, nextWx);
+                        return (
+                          <div className="flex items-center justify-center gap-2 mt-2 pt-2 border-t border-gold-400/6">
+                            <span className="text-[10px] text-ink-300">{ch.wuxing}</span>
+                            <span className="text-[10px]" style={{ color: REL_COLORS[rel] }}>{REL_LABELS[rel]}</span>
+                            <span className="text-[10px] text-ink-300">{nextWx}</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* 无逐字解析数据时的降级展示 */
+                <div className="space-y-3">
+                  {nameChars.map((c, i) => {
+                    const wx = nameWxList[i] || '土';
+                    return (
+                      <div key={i} className="flex items-center gap-3 rounded-sm p-3 bg-gold-400/[0.03] border border-gold-400/8">
+                        <div className="w-12 h-12 flex items-center justify-center rounded border font-serif text-xl font-bold" style={{ borderColor: `rgba(${WX_RGB[wx]},0.3)`, background: `rgba(${WX_RGB[wx]},0.08)`, color: WX_COLORS[wx] }}>{c}</div>
+                        <div>
+                          <div className="flex items-center gap-2"><span className="font-serif text-base font-bold text-gold-200">{c}</span><WuxingTag wuxing={wx} className="text-[9px]" /></div>
+                          <div className="text-[10px] text-ink-300">{i === 0 ? '姓氏' : '名字'} · 五行属{wx}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <GoldLine className="mb-10" />
+
+          {/* ═══ 2. 五行匹配 ═══ */}
+          <section id="wxMatch" className="mb-10 animate-fade-in-up stagger-2">
             <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none relative">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-vermilion to-gold-400" />
               <div className="flex items-center gap-2.5 mb-5">
@@ -290,72 +430,87 @@ export default function TestNameResultPage() {
                 <span className={`ml-auto inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold border ${gradeBadge(wxMatchGrade)}`}>{result.wuxingMatch} · {wxMatchGrade.label}</span>
               </div>
 
-              {/* 桌面端纵向字卡 */}
-              <div className="hidden md:flex flex-col items-center gap-0 mb-5">
+              {/* 名字五行流通路径 */}
+              <div className="flex items-center justify-center gap-1 mb-5 flex-wrap">
                 {nameChars.map((c, i) => {
                   const wx = nameWxList[i] || '土';
-                  const isSur = i === 0;
                   return (
-                    <div key={i} className="w-full max-w-xs">
-                      <div className="rounded-sm p-3.5 bg-gradient-to-br from-gold-400/[0.06] to-gold-400/[0.01] border border-gold-400/14 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
-                        <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 flex items-center justify-center rounded border font-serif text-[26px] font-bold" style={{ borderColor: `rgba(${WX_RGB[wx]},0.3)`, background: `rgba(${WX_RGB[wx]},0.08)`, color: WX_COLORS[wx] }}>{c}</div>
-                          <div><div className="font-serif text-base font-bold text-ink-100">{c}</div><div className="text-[10px] text-ink-300">{isSur ? '姓氏' : '名'} · 五行属{wx}</div></div>
-                          <WuxingTag wuxing={wx} className="ml-auto" />
-                        </div>
-                      </div>
-                      {i < nameChars.length - 1 && (() => {
-                        const nextWx = nameWxList[i + 1] || '土';
-                        const rel = getRelation(wx, nextWx);
-                        return (<div className="flex flex-col items-center justify-center gap-1 py-1"><div className="w-px h-4 bg-gradient-to-b from-gold-400/15 via-gold-400/25 to-gold-400/15" /><span className="text-[9px]" style={{ color: REL_COLORS[rel] }}>{REL_LABELS[rel]}</span><div className="w-px h-4 bg-gradient-to-b from-gold-400/15 via-gold-400/25 to-gold-400/15" /></div>);
+                    <div key={i} className="flex items-center gap-1">
+                      {i > 0 && (() => {
+                        const prevWx = nameWxList[i - 1] || '土';
+                        const rel = getRelation(prevWx, wx);
+                        return (
+                          <div className="flex flex-col items-center px-1">
+                            <span className="text-[9px]" style={{ color: REL_COLORS[rel] }}>{REL_LABELS[rel]}</span>
+                          </div>
+                        );
                       })()}
+                      <div className="flex flex-col items-center px-2 py-1.5 rounded-sm border" style={{ borderColor: `rgba(${WX_RGB[wx]},0.2)`, background: `rgba(${WX_RGB[wx]},0.06)` }}>
+                        <span className="font-serif text-lg font-bold" style={{ color: WX_COLORS[wx] }}>{c}</span>
+                        <WuxingTag wuxing={wx} className="text-[8px] mt-0.5" />
+                      </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* 移动端横向字卡 */}
-              <div className="flex md:hidden items-center gap-2 mb-5 overflow-x-auto py-1" style={{ scrollbarWidth: 'none' }}>
-                {nameChars.map((c, i) => {
-                  const wx = nameWxList[i] || '土';
-                  return (<div key={i} className="flex items-center gap-1 flex-shrink-0">{i > 0 && <div className="w-3 h-px bg-gradient-to-r from-gold-400/15 via-gold-400/30 to-gold-400/15" />}<div className="rounded-sm p-2 bg-gradient-to-br from-gold-400/[0.06] to-gold-400/[0.01] border border-gold-400/14 min-w-[56px]"><div className="w-9 h-9 flex items-center justify-center rounded mx-auto font-serif text-lg font-bold" style={{ borderColor: `rgba(${WX_RGB[wx]},0.3)`, background: `rgba(${WX_RGB[wx]},0.08)`, color: WX_COLORS[wx], borderWidth: 1 }}>{c}</div><div className="text-center mt-1"><WuxingTag wuxing={wx}><span className="text-[8px] px-1 py-0.5">{wx}</span></WuxingTag></div></div></div>);
-                })}
-              </div>
-
-              {/* 五行对比区 */}
-              <div className="rounded-sm p-4 bg-gold-400/[0.03] border border-gold-400/8">
-                <div className="text-[11px] font-semibold mb-3 text-gold-200 flex items-center gap-1"><BarChart3 size={9} /> 命盘与名字五行对比</div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div className="rounded-sm p-3 bg-gold-400/[0.03] border border-gold-400/6">
-                    <div className="text-[10px] mb-2 text-ink-300">名字五行</div>
-                    <div className="flex flex-wrap gap-1.5">{nameWxList.map((wx, i) => (<WuxingTag key={i} wuxing={wx}><WxIcon wx={wx} size={8} /> {wx}</WuxingTag>))}</div>
-                  </div>
-                  <div className="rounded-sm p-3 bg-gold-400/[0.03] border border-gold-400/6">
-                    <div className="text-[10px] mb-2 text-ink-300">五行分布</div>
-                    <div className="flex flex-wrap gap-1.5">{wuxingEntries.map(([wx, val]) => (<WuxingTag key={wx} wuxing={wx}><WxIcon wx={wx} size={8} /> {wx}{val}</WuxingTag>))}</div>
-                  </div>
-                </div>
-                <div className="text-[10px] mb-2 text-ink-300">五行分布</div>
+              {/* 五行分布柱状图 */}
+              <div className="rounded-sm p-4 bg-gold-400/[0.03] border border-gold-400/8 mb-4">
+                <div className="text-[11px] font-semibold mb-3 text-gold-200 flex items-center gap-1"><BarChart3 size={9} /> 命盘五行分布</div>
                 <div className="grid grid-cols-5 gap-2">
-                  {['金','木','水','火','土'].map((wx, i) => {
+                  {['金','木','水','火','土'].map((wx) => {
                     const val = result.wuxing?.[wx] || 0;
                     const totalWx = Object.values(result.wuxing || {}).reduce((a: number, b: number) => a + b, 0) || 1;
                     const pct = Math.round((val / totalWx) * 100);
-                    return (<div key={wx} className="text-center"><div className="text-[10px] mb-1" style={{ color: WX_COLORS[wx] }}>{wx}</div><div className="h-12 rounded-sm relative" style={{ background: `rgba(${WX_RGB[wx]},0.06)`, border: `1px solid rgba(${WX_RGB[wx]},0.1)` }}><div className="absolute bottom-0 left-0 right-0 rounded-b-sm" style={{ background: `rgba(${WX_RGB[wx]},0.25)`, height: `${pct}%` }} /></div><div className="text-[10px] mt-1 text-ink-300">{val}</div></div>);
+                    return (
+                      <div key={wx} className="text-center">
+                        <div className="text-[10px] mb-1" style={{ color: WX_COLORS[wx] }}>{wx}</div>
+                        <div className="h-12 rounded-sm relative" style={{ background: `rgba(${WX_RGB[wx]},0.06)`, border: `1px solid rgba(${WX_RGB[wx]},0.1)` }}>
+                          <div className="absolute bottom-0 left-0 right-0 rounded-b-sm transition-all duration-1000" style={{ background: `rgba(${WX_RGB[wx]},0.3)`, height: `${pct}%` }} />
+                        </div>
+                        <div className="text-[10px] mt-1 text-ink-300">{val}</div>
+                      </div>
+                    );
                   })}
                 </div>
-                <div className="mt-3 pt-3 border-t border-gold-400/6">
-                  <div className="flex items-start gap-2 text-xs text-ink-100"><CheckCircle size={12} className="text-green-400 mt-0.5 flex-shrink-0" />{result.matchConclusion}</div>
-                </div>
               </div>
+
+              {/* 五行补益路径 */}
+              {wuxingBenefit && (
+                <div className="rounded-sm p-4 bg-gradient-to-br from-vermilion/[0.03] to-gold-400/[0.02] border border-vermilion/8">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Orbit size={10} className="text-vermilion-light" />
+                    <span className="text-[11px] font-semibold text-gold-200">五行补益分析</span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-ink-200 mb-2">{wuxingBenefit.description}</p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <div className="text-[10px] px-2 py-1 rounded-sm bg-gold-400/[0.05] border border-gold-400/10 text-ink-200">
+                      <span className="text-ink-400">流通：</span>{wuxingBenefit.flow}
+                    </div>
+                  </div>
+                  {wuxingBenefit.xiyongAdvice && (
+                    <div className="flex items-start gap-1.5">
+                      <Info size={10} className="text-gold-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-[11px] leading-relaxed text-ink-300">{wuxingBenefit.xiyongAdvice}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 兼容：matchConclusion */}
+              {!wuxingBenefit && result.matchConclusion && (
+                <div className="flex items-start gap-2 text-xs text-ink-200 mt-3">
+                  <CheckCircle size={12} className="text-green-400 mt-0.5 flex-shrink-0" />
+                  {result.matchConclusion}
+                </div>
+              )}
             </div>
           </section>
 
           <GoldLine className="mb-10" />
 
-          {/* 综合评分 */}
-          <section id="score" className="mb-10 animate-fade-in-up stagger-2">
+          {/* ═══ 3. 综合评分 ═══ */}
+          <section id="score" className="mb-10 animate-fade-in-up stagger-3">
             <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><BarChart3 size={12} className="text-gold-400" /></div>
@@ -367,12 +522,14 @@ export default function TestNameResultPage() {
                   <div key={dim.key}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2"><dim.Icon size={10} style={{ color: dim.grade.color }} /><span className="text-xs font-medium text-ink-100">{dim.name}</span></div>
-                      <div className="flex items-center gap-2"><span className="text-sm font-bold font-serif" style={{ color: dim.grade.color }}>{dim.score}</span><span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${gradeBadge(dim.grade)}`}>{dim.grade.label}</span></div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold font-serif" style={{ color: dim.grade.color }}>{dim.score}</span>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${gradeBadge(dim.grade)}`}>{dim.grade.label}</span>
+                      </div>
                     </div>
                     <div className="h-1.5 rounded-full bg-gold-400/[0.06] overflow-hidden">
                       <div ref={(el) => { if (el) barRefs.current.set(dim.key, el); }} className={`h-full rounded-full bg-gradient-to-r ${getGradeFill(dim.score)}`} style={{ width: 0 }} data-width={`${dim.score}%`} />
                     </div>
-                    <div className="text-[10px] mt-1.5 text-ink-300">{dim.desc}</div>
                   </div>
                 ))}
               </div>
@@ -381,130 +538,339 @@ export default function TestNameResultPage() {
 
           <GoldLine className="mb-10" />
 
-          {/* 三才五格 */}
+          {/* ═══ 4. 三才五格 ═══ */}
           {result.wuge && result.wuge.length > 0 && (
-            <section id="ge" className="mb-10 animate-fade-in-up stagger-3">
+            <section id="ge" className="mb-10 animate-fade-in-up stagger-4">
               <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none">
                 <div className="flex items-center gap-2.5 mb-5">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><Grid3X3 size={12} className="text-gold-400" /></div>
                   <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">三才五格</div>
+                  {result.wugeScore ? (
+                    <span className={`ml-auto inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold border ${gradeBadge(wugeGrade)}`}>{result.wugeScore} · {wugeGrade.label}</span>
+                  ) : null}
                 </div>
+
+                {/* 五格总览 */}
                 <div className="grid grid-cols-5 gap-1 mb-5">
                   {result.wuge.map((g, i) => {
                     const jiCls = g.luck === '吉' ? 'bg-green-400/10 text-green-400 border border-green-400/20' : g.luck === '半吉' ? 'bg-gold-200/10 text-gold-200 border border-gold-200/20' : 'bg-vermilion-light/8 text-vermilion-light border border-vermilion-light/20';
-                    return (<div key={i} className="text-center px-1 py-3 bg-gold-400/[0.03] border border-gold-400/8 rounded-sm hover:bg-gold-400/[0.06] transition-all"><div className="text-[10px] text-ink-300">{g.name}</div><div className="font-serif text-xl font-bold text-gold-200">{g.strokes}</div><span className={`text-[9px] px-1.5 py-0.5 rounded inline-block mt-1 ${jiCls}`}>{g.luck}</span><div className="text-[9px] mt-1"><WuxingTag wuxing={g.wx}><span className="text-[8px] px-1 py-0">{g.wx}</span></WuxingTag></div></div>);
+                    return (
+                      <div key={i} className="text-center px-1 py-3 bg-gold-400/[0.03] border border-gold-400/8 rounded-sm hover:bg-gold-400/[0.06] transition-all">
+                        <div className="text-[10px] text-ink-300">{g.name}</div>
+                        <div className="font-serif text-xl font-bold text-gold-200">{g.strokes}</div>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded inline-block mt-1 ${jiCls}`}>{g.luck}</span>
+                        <div className="text-[9px] mt-1"><WuxingTag wuxing={g.wx}><span className="text-[8px] px-1 py-0">{g.wx}</span></WuxingTag></div>
+                      </div>
+                    );
                   })}
                 </div>
+
+                {/* 逐格详解 */}
                 <div className="space-y-2">
                   {result.wuge.map((g, i) => {
                     const JiIcon = g.luck === '吉' ? CheckCircle : g.luck === '半吉' ? MinusCircle : XCircle;
                     const jiColor = g.luck === '吉' ? '#81c784' : g.luck === '半吉' ? '#e8d09a' : '#d4726a';
-                    const meanings: Record<string, string> = { '天格': '先天运，祖上福泽与早年根基', '人格': '主运，一生核心运势与性格特质', '地格': '前运，中年以前的发展与际遇', '外格': '副运，人际社交与外部助力', '总格': '后运，晚年运势与人生总结' };
-                    return (<div key={i} className="flex items-start gap-2 p-2 rounded-sm bg-gold-400/[0.02]"><JiIcon size={10} className="mt-0.5 flex-shrink-0" style={{ color: jiColor }} /><div><div className="text-[11px] font-medium text-ink-100">{g.name}（{g.strokes}画 · {g.wx}）</div><div className="text-[10px] text-ink-300">{meanings[g.name] || ''}</div></div></div>);
+                    const defaultMeanings: Record<string, string> = { '天格': '先天运，祖上福泽与早年根基', '人格': '主运，一生核心性格特质', '地格': '前运，中年以前的发展际遇', '外格': '副运，人际社交与外部助力', '总格': '后运，晚年运势与人生总结' };
+                    return (
+                      <div key={i} className="flex items-start gap-2 p-2.5 rounded-sm bg-gold-400/[0.02]">
+                        <JiIcon size={10} className="mt-0.5 flex-shrink-0" style={{ color: jiColor }} />
+                        <div>
+                          <div className="text-[11px] font-medium text-ink-100">{g.name}（{g.strokes}画 · {g.wx}）</div>
+                          <div className="text-[10px] text-ink-300">{g.meaning || defaultMeanings[g.name] || ''}</div>
+                        </div>
+                      </div>
+                    );
                   })}
                 </div>
 
-                {/* 音韵分析 */}
-                <div className="mt-5 pt-4 border-t border-gold-400/8">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Music size={10} className="text-gold-400" />
-                    <span className="text-[11px] font-semibold text-gold-200">音韵分析</span>
-                    <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded text-[9px] font-semibold border ${gradeBadge(yinyunGrade)}`}>{result.yinyunScore} · {yinyunGrade.label}</span>
-                  </div>
-                  {result.tones && result.tones.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {result.tones.map((t, i) => {
-                        const toneNames = ['','阴平','阳平','上声','去声'];
-                        const toneSymbols = ['','ˉ','ˊ','ˇ','ˋ'];
-                        const tone = t.tone || 1;
-                        return (<div key={i} className="rounded-sm px-3 py-2 text-center bg-gold-400/[0.03] border border-gold-400/8 min-w-[60px]"><div className="font-serif text-base font-bold text-gold-200">{t.char}</div><div className="text-[9px]" style={{ color: tone <= 2 ? '#81c784' : '#e8d09a' }}>{toneNames[tone]}{toneSymbols[tone]}</div></div>);
-                      })}
+                {/* 三才配置说明 */}
+                {result.sancaiConfig && (
+                  <div className="mt-4 pt-3 border-t border-gold-400/8">
+                    <div className="flex items-center gap-2">
+                      <Grid3X3 size={10} className="text-gold-400" />
+                      <span className="text-[11px] font-semibold text-gold-200">三才配置</span>
+                      <span className="text-[11px] text-ink-200">{result.sancaiConfig}</span>
                     </div>
-                  )}
-                  {result.homophone && (<div className="flex items-center gap-2 text-xs text-ink-100"><CheckCircle size={12} className="text-green-400" />{result.homophone}</div>)}
-                </div>
+                  </div>
+                )}
               </div>
             </section>
           )}
 
           <GoldLine className="mb-10" />
 
-          {/* 重名风险 */}
-          <section id="rarity" className="mb-10 animate-fade-in-up stagger-4">
+          {/* ═══ 5. 音韵分析 ═══ */}
+          <section id="phonetic" className="mb-10 animate-fade-in-up stagger-5">
+            <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none">
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><Volume2 size={12} className="text-gold-400" /></div>
+                <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">音韵分析</div>
+                <span className={`ml-auto inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold border ${gradeBadge(yinyunGrade)}`}>{result.yinyunScore} · {yinyunGrade.label}</span>
+              </div>
+
+              {/* 逐字声调 */}
+              {toneData.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {toneData.map((t, i) => {
+                    const toneNames = ['','阴平','阳平','上声','去声'];
+                    const toneSymbols = ['','ˉ','ˊ','ˇ','ˋ'];
+                    const tone = t.tone || 1;
+                    const pingze = 'pingze' in t ? (t as { pingze: string }).pingze : (tone <= 2 ? '平' : '仄');
+                    return (
+                      <div key={i} className="rounded-sm px-4 py-2.5 text-center bg-gold-400/[0.03] border border-gold-400/8 min-w-[64px]">
+                        <div className="font-serif text-lg font-bold text-gold-200">{t.char}</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: tone <= 2 ? '#81c784' : '#e8d09a' }}>{toneNames[tone]}{toneSymbols[tone]}</div>
+                        <div className="text-[9px] mt-0.5" style={{ color: tone <= 2 ? '#81c784' : '#e8d09a' }}>{pingze}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 平仄格局 */}
+              {phoneticAnalysis?.pingzePattern && (
+                <div className="rounded-sm p-3 bg-gold-400/[0.03] border border-gold-400/8 mb-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Music size={10} className="text-gold-400" />
+                    <span className="text-[11px] font-semibold text-gold-200">平仄格局</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {phoneticAnalysis.pingzePattern.split('').map((pz, i) => (
+                      <span key={i} className={`w-8 h-8 rounded-sm flex items-center justify-center font-serif text-sm font-bold border ${pz === '平' ? 'text-green-400 border-green-400/20 bg-green-400/[0.06]' : 'text-gold-200 border-gold-400/20 bg-gold-400/[0.06]'}`}>{pz}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 平仄评价 */}
+              {phoneticAnalysis?.pingzeEval && (
+                <div className="flex items-start gap-2 mb-2">
+                  <CheckCircle size={11} className="text-green-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-[11px] leading-relaxed text-ink-200">{phoneticAnalysis.pingzeEval}</p>
+                </div>
+              )}
+
+              {/* 韵母评价 */}
+              {phoneticAnalysis?.rhymeEval && (
+                <div className="flex items-start gap-2">
+                  <Volume2 size={11} className="text-gold-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-[11px] leading-relaxed text-ink-200">{phoneticAnalysis.rhymeEval}</p>
+                </div>
+              )}
+
+              {/* 兼容旧字段 */}
+              {!phoneticAnalysis && result.tones && result.tones.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {result.tones.map((t, i) => {
+                    const toneNames = ['','阴平','阳平','上声','去声'];
+                    const tone = t.tone || 1;
+                    return (
+                      <div key={i} className="rounded-sm px-3 py-2 text-center bg-gold-400/[0.03] border border-gold-400/8 min-w-[60px]">
+                        <div className="font-serif text-base font-bold text-gold-200">{t.char}</div>
+                        <div className="text-[9px]" style={{ color: tone <= 2 ? '#81c784' : '#e8d09a' }}>{toneNames[tone]}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <GoldLine className="mb-10" />
+
+          {/* ═══ 6. 谐音检测 ═══ */}
+          <section id="homophone" className="mb-10 animate-fade-in-up stagger-6">
+            <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none">
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><Shield size={12} className="text-gold-400" /></div>
+                <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">谐音检测</div>
+              </div>
+
+              {homophoneCheck ? (
+                <div className="space-y-3">
+                  {/* 检测结果 */}
+                  <div className={`rounded-sm p-4 border ${homophoneCheck.result === '安全' ? 'bg-green-400/[0.04] border-green-400/12' : 'bg-vermilion/[0.04] border-vermilion/12'}`}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {homophoneCheck.result === '安全' ? <CheckCircle size={14} className="text-green-400" /> : <AlertTriangle size={14} className="text-vermilion-light" />}
+                      <span className={`font-serif text-sm font-semibold ${homophoneCheck.result === '安全' ? 'text-green-400' : 'text-vermilion-light'}`}>
+                        {homophoneCheck.result === '安全' ? '未发现不良谐音' : '存在谐音风险'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-ink-200">{homophoneCheck.details}</p>
+                  </div>
+
+                  {/* 方言谐音 */}
+                  {homophoneCheck.dialectNotes && (
+                    <div className="rounded-sm p-3 bg-gold-400/[0.03] border border-gold-400/8">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Volume2 size={10} className="text-gold-400" />
+                        <span className="text-[11px] font-semibold text-gold-200">方言谐音</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-ink-300">{homophoneCheck.dialectNotes}</p>
+                    </div>
+                  )}
+                </div>
+              ) : result.homophone ? (
+                <div className="flex items-center gap-2 text-xs text-ink-200">
+                  <CheckCircle size={14} className="text-green-400" />
+                  {result.homophone}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-ink-400">
+                  <Shield size={12} />
+                  谐音检测数据加载中
+                </div>
+              )}
+            </div>
+          </section>
+
+          <GoldLine className="mb-10" />
+
+          {/* ═══ 7. 重名风险 ═══ */}
+          <section id="rarity" className="mb-10 animate-fade-in-up stagger-7">
             <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><Fingerprint size={12} className="text-gold-400" /></div>
                 <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">重名风险</div>
                 <span className={`ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold ${getRarityCls(uniqLevel)}`}>{uniqLevel}重名</span>
               </div>
+
+              {/* 独特性分数条 */}
               <div className="flex items-center gap-4 mb-4">
-                <div className="flex-1"><div className="h-2 rounded bg-gold-400/[0.06] overflow-hidden"><div ref={rarityBarRef} className="h-full rounded" style={{ width: 0, background: `linear-gradient(90deg, rgba(${WX_RGB[nameWxList[0] || '金']},0.2), ${getRarityBarColor(uniqLevel)})` }} data-width={`${rarityBarPct}%`} /></div></div>
+                <div className="flex-1">
+                  <div className="h-2 rounded bg-gold-400/[0.06] overflow-hidden">
+                    <div ref={rarityBarRef} className="h-full rounded transition-all duration-1000" style={{ width: 0, background: `linear-gradient(90deg, rgba(${WX_RGB[nameWxList[0] || '金']},0.2), ${getRarityBarColor(uniqLevel)})` }} data-width={`${rarityBarPct}%`} />
+                  </div>
+                </div>
                 <span className="font-serif text-2xl font-bold" style={{ color: getRarityBarColor(uniqLevel) }}>{uniquenessScore}</span>
               </div>
-              <div className="text-[11px] mb-3 text-ink-300">预估重名率：{repeatLevel}</div>
-              <div className="flex items-start gap-2"><Info size={10} className="text-ink-300 mt-0.5 flex-shrink-0" /><span className="text-[11px] leading-relaxed text-ink-300">{getRarityDesc(repeatLevel)}</span></div>
-              <div className="mt-3 pt-3 border-t border-gold-400/6">
-                <div className="text-[10px] mb-2 text-gold-600">用字使用频率</div>
-                {nameChars.map((c, i) => {
-                  const isSur = i === 0;
-                  const wx = nameWxList[i] || '土';
-                  return (<div key={i} className="flex items-center gap-2 mb-1.5"><span className="font-serif text-sm w-6 text-center text-gold-200">{c}</span><span className="text-[9px] w-8 text-ink-300">{isSur ? '姓' : '名'}</span><div className="flex-1 h-2 rounded-sm bg-gold-400/[0.04]"><div className="h-full rounded-sm" style={{ width: isSur ? '70%' : '40%', background: `rgba(${WX_RGB[wx]},0.3)` }} /></div><span className="text-[9px] text-ink-300">{isSur ? '高频' : '中频'}</span></div>);
-                })}
+
+              {/* 风险描述 */}
+              <div className="flex items-start gap-2 mb-4">
+                <Info size={10} className="text-ink-300 mt-0.5 flex-shrink-0" />
+                <span className="text-[11px] leading-relaxed text-ink-300">{getRarityDesc(repeatLevel)}</span>
               </div>
+
+              {/* 用字使用频率 */}
+              {charFrequency.length > 0 ? (
+                <div className="rounded-sm p-3 bg-gold-400/[0.03] border border-gold-400/8">
+                  <div className="text-[10px] mb-2.5 font-semibold text-gold-200">用字使用频率</div>
+                  <div className="space-y-2">
+                    {charFrequency.map((cf, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="font-serif text-sm w-6 text-center text-gold-200">{cf.char}</span>
+                        <span className="text-[9px] w-16 text-ink-300">{cf.freq}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* 降级展示 */
+                <div className="mt-3 pt-3 border-t border-gold-400/6">
+                  <div className="text-[10px] mb-2 text-gold-600">用字使用频率</div>
+                  {nameChars.map((c, i) => {
+                    const isSur = i === 0;
+                    const wx = nameWxList[i] || '土';
+                    return (
+                      <div key={i} className="flex items-center gap-2 mb-1.5">
+                        <span className="font-serif text-sm w-6 text-center text-gold-200">{c}</span>
+                        <span className="text-[9px] w-8 text-ink-300">{isSur ? '姓' : '名'}</span>
+                        <div className="flex-1 h-2 rounded-sm bg-gold-400/[0.04]">
+                          <div className="h-full rounded-sm" style={{ width: isSur ? '70%' : '40%', background: `rgba(${WX_RGB[wx]},0.3)` }} />
+                        </div>
+                        <span className="text-[9px] text-ink-300">{isSur ? '高频' : '中频'}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </section>
 
           <GoldLine className="mb-10" />
 
-          {/* 综合建议 */}
-          <section id="advice" className="mb-10 animate-fade-in-up stagger-5">
+          {/* ═══ 8. 优化建议 ═══ */}
+          <section id="advice" className="mb-10 animate-fade-in-up stagger-8">
             <div className="jinming-card rounded-sm p-5 md:p-6 hover:transform-none hover:shadow-none">
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gold-400/[0.08] border border-gold-400/20"><Lightbulb size={12} className="text-gold-400" /></div>
-                <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">综合建议</div>
+                <div className="font-serif text-sm font-semibold tracking-wider text-gold-200">优化建议</div>
               </div>
-              <div className="space-y-3">
-                {[
-                  { Icon: Orbit, grade: wxMatchGrade, goodLabel: '五行契合', fairLabel: '五行尚可', poorLabel: '五行欠佳', goodText: '名字五行与命盘喜用神高度匹配，补益有力，可安心使用。', fairText: '名字五行与喜用神有一定呼应，但非最优搭配。', poorText: '名字五行与命盘喜用神匹配偏弱，建议优先选用喜用属性的字进行补益。', score: result.wuxingMatch },
-                  { Icon: Music, grade: yinyunGrade, goodLabel: '音韵优美', fairLabel: '音韵尚可', poorLabel: '音韵欠佳', goodText: '名字声调平仄有致，韵律和谐，朗朗上口。', fairText: '名字读音平稳，可进一步优化声调搭配以增强韵律感。', poorText: '名字声调搭配不够理想，建议调整用字使平仄相间、韵律更佳。', score: result.yinyunScore },
-                  { Icon: Fingerprint, grade: getGrade(repeatLevel === '极低' || repeatLevel === '低' ? 90 : repeatLevel === '中' ? 70 : 40), goodLabel: '独特出众', fairLabel: '独特性适中', poorLabel: '独特性不足', goodText: getRarityDesc(repeatLevel), fairText: getRarityDesc(repeatLevel), poorText: getRarityDesc(repeatLevel), score: repeatLevel === '极低' || repeatLevel === '低' ? 90 : repeatLevel === '中' ? 70 : 40 },
-                ].map((ad, i) => {
-                  const isGood = ad.score >= 80;
-                  const isFair = ad.score >= 60 && ad.score < 80;
-                  const color = isGood ? '#81c784' : isFair ? '#e8d09a' : '#d4726a';
-                  return (
+
+              {suggestions.length > 0 ? (
+                <div className="space-y-3">
+                  {suggestions.map((sug, i) => (
                     <div key={i} className="rounded-sm p-3.5 bg-gold-400/[0.02] border border-gold-400/6">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <ad.Icon size={10} style={{ color }} />
-                        <span className="text-[11px] font-semibold" style={{ color }}>{isGood ? ad.goodLabel : isFair ? ad.fairLabel : ad.poorLabel}</span>
+                        <Lightbulb size={10} className="text-gold-400" />
+                        <span className="text-[11px] font-semibold text-gold-200">{sug.aspect}</span>
                       </div>
-                      <p className="text-[11px] leading-relaxed text-ink-300">{isGood ? ad.goodText : isFair ? ad.fairText : ad.poorText}</p>
+                      <p className="text-[11px] leading-relaxed text-ink-300">{sug.content}</p>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                /* 降级：基于分数的通用建议 */
+                <div className="space-y-3">
+                  {[
+                    { Icon: Orbit, grade: wxMatchGrade, goodLabel: '五行契合', fairLabel: '五行尚可', poorLabel: '五行欠佳', goodText: '名字五行与命盘喜用神高度匹配，补益有力，可安心使用。', fairText: '名字五行与喜用神有一定呼应，但非最优搭配。', poorText: '名字五行与命盘喜用神匹配偏弱，建议优先选用喜用属性的字进行补益。', score: result.wuxingMatch },
+                    { Icon: Music, grade: yinyunGrade, goodLabel: '音韵优美', fairLabel: '音韵尚可', poorLabel: '音韵欠佳', goodText: '名字声调平仄有致，韵律和谐，朗朗上口。', fairText: '名字读音平稳，可进一步优化声调搭配以增强韵律感。', poorText: '名字声调搭配不够理想，建议调整用字使平仄相间、韵律更佳。', score: result.yinyunScore },
+                    { Icon: Fingerprint, grade: getGrade(repeatLevel === '极低' || repeatLevel === '低' ? 90 : repeatLevel === '中' ? 70 : 40), goodLabel: '独特出众', fairLabel: '独特性适中', poorLabel: '独特性不足', goodText: getRarityDesc(repeatLevel), fairText: getRarityDesc(repeatLevel), poorText: getRarityDesc(repeatLevel), score: repeatLevel === '极低' || repeatLevel === '低' ? 90 : repeatLevel === '中' ? 70 : 40 },
+                  ].map((ad, i) => {
+                    const isGood = ad.score >= 80;
+                    const isFair = ad.score >= 60 && ad.score < 80;
+                    const color = isGood ? '#81c784' : isFair ? '#e8d09a' : '#d4726a';
+                    return (
+                      <div key={i} className="rounded-sm p-3.5 bg-gold-400/[0.02] border border-gold-400/6">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <ad.Icon size={10} style={{ color }} />
+                          <span className="text-[11px] font-semibold" style={{ color }}>{isGood ? ad.goodLabel : isFair ? ad.fairLabel : ad.poorLabel}</span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-ink-300">{isGood ? ad.goodText : isFair ? ad.fairText : ad.poorText}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 总体评价 */}
               <div className="mt-5 pt-4 border-t border-gold-400/8">
-                {result.score >= 80 ? (
-                  <div className="rounded-sm p-4 bg-green-400/[0.04] border border-green-400/12">
-                    <div className="flex items-center gap-2 mb-2"><CheckCircle size={12} className="text-green-400" /><span className="font-serif text-sm font-semibold text-green-400">总体评价：良名</span></div>
-                    <p className="text-[11px] leading-relaxed text-ink-300">「{result.fullName}」综合表现优良，与命理契合度较高，可以作为正式名字使用。</p>
-                  </div>
-                ) : result.score >= 65 ? (
-                  <div className="rounded-sm p-4 bg-gold-200/[0.04] border border-gold-200/12">
-                    <div className="flex items-center gap-2 mb-2"><MinusCircle size={12} className="text-gold-200" /><span className="font-serif text-sm font-semibold text-gold-200">总体评价：可用</span></div>
-                    <p className="text-[11px] leading-relaxed text-ink-300">「{result.fullName}」综合表现尚可，部分维度有优化空间。如介意不足之处，可考虑调整。</p>
+                {result.overallComment ? (
+                  <div className={`rounded-sm p-4 border ${result.score >= 80 ? 'bg-green-400/[0.04] border-green-400/12' : result.score >= 65 ? 'bg-gold-200/[0.04] border-gold-200/12' : 'bg-vermilion/[0.04] border-vermilion/12'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      {result.score >= 80 ? <CheckCircle size={12} className="text-green-400" /> : result.score >= 65 ? <MinusCircle size={12} className="text-gold-200" /> : <AlertTriangle size={12} className="text-vermilion-light" />}
+                      <span className={`font-serif text-sm font-semibold ${result.score >= 80 ? 'text-green-400' : result.score >= 65 ? 'text-gold-200' : 'text-vermilion-light'}`}>
+                        总体评价：{result.score >= 80 ? '良名' : result.score >= 65 ? '可用' : '建议调整'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-ink-300">{result.overallComment}</p>
                   </div>
                 ) : (
-                  <div className="rounded-sm p-4 bg-vermilion/[0.04] border border-vermilion/12">
-                    <div className="flex items-center gap-2 mb-2"><AlertTriangle size={12} className="text-vermilion-light" /><span className="font-serif text-sm font-semibold text-vermilion-light">总体评价：建议调整</span></div>
-                    <p className="text-[11px] leading-relaxed text-ink-300">「{result.fullName}」在多个维度表现偏弱，建议通过AI起名寻找更契合命理的替代方案。</p>
-                  </div>
+                  /* 降级总体评价 */
+                  <>
+                    {result.score >= 80 ? (
+                      <div className="rounded-sm p-4 bg-green-400/[0.04] border border-green-400/12">
+                        <div className="flex items-center gap-2 mb-2"><CheckCircle size={12} className="text-green-400" /><span className="font-serif text-sm font-semibold text-green-400">总体评价：良名</span></div>
+                        <p className="text-[11px] leading-relaxed text-ink-300">「{result.fullName}」综合表现优良，与命理契合度较高，可以作为正式名字使用。</p>
+                      </div>
+                    ) : result.score >= 65 ? (
+                      <div className="rounded-sm p-4 bg-gold-200/[0.04] border border-gold-200/12">
+                        <div className="flex items-center gap-2 mb-2"><MinusCircle size={12} className="text-gold-200" /><span className="font-serif text-sm font-semibold text-gold-200">总体评价：可用</span></div>
+                        <p className="text-[11px] leading-relaxed text-ink-300">「{result.fullName}」综合表现尚可，部分维度有优化空间。如介意不足之处，可考虑调整。</p>
+                      </div>
+                    ) : (
+                      <div className="rounded-sm p-4 bg-vermilion/[0.04] border border-vermilion/12">
+                        <div className="flex items-center gap-2 mb-2"><AlertTriangle size={12} className="text-vermilion-light" /><span className="font-serif text-sm font-semibold text-vermilion-light">总体评价：建议调整</span></div>
+                        <p className="text-[11px] leading-relaxed text-ink-300">「{result.fullName}」在多个维度表现偏弱，建议通过AI起名寻找更契合的替代方案。</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </section>
 
-          {/* 底部 CTA */}
+          {/* ═══ 底部 CTA ═══ */}
           <div className="text-center py-8 animate-fade-in-up">
             <GoldLine className="max-w-[60px] mx-auto mb-5" />
             <p className="text-sm mb-4 text-ink-300">对结果不满意？让AI为您量身推演良名</p>
@@ -518,7 +884,7 @@ export default function TestNameResultPage() {
         </div>
       </main>
 
-      {/* 底部固定栏 */}
+      {/* ═══ 底部固定栏 ═══ */}
       <div className={`fixed bottom-0 left-0 right-0 z-40 bg-ink-900/94 backdrop-blur-md border-t border-gold-400/8 transition-transform duration-500 ${showBottomBar ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="max-w-3xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between gap-3">

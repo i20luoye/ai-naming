@@ -74,22 +74,96 @@ export interface TestNameInput {
   birthTime?: string;
 }
 
+export interface CharClassicRef {
+  source: string;
+  quote: string;
+  interpretation: string;
+}
+
+export interface CharAnalysis {
+  char: string;
+  pinyin: string;
+  wuxing: string;
+  strokes: number;
+  structure: string;
+  radical: string;
+  meaning: string;
+  classicRef?: CharClassicRef;
+}
+
+export interface WuxingBenefit {
+  description: string;
+  flow: string;
+  xiyongAdvice: string;
+}
+
+export interface ToneInfo {
+  char: string;
+  tone: number;
+  toneName: string;
+  pingze: string;
+}
+
+export interface PhoneticAnalysis {
+  tones: ToneInfo[];
+  pingzePattern: string;
+  pingzeEval: string;
+  rhymeEval: string;
+}
+
+export interface HomophoneCheck {
+  result: string;
+  details: string;
+  dialectNotes?: string;
+}
+
+export interface CharFrequency {
+  char: string;
+  freq: string;
+}
+
+export interface Suggestion {
+  aspect: string;
+  content: string;
+}
+
 export interface TestNameResult {
   surname: string;
   fullName: string;
   score: number;
   wuxingMatch: number;
+  meaningDepth?: number;
+  wugeScore?: number;
   sancaiConfig: string;
   yinyunScore: number;
   wuxing: Record<string, number>;
-  nameWuxing: string;
+  nameWuxing: string | string[];
   matchConclusion: string;
-  wuge: { name: string; strokes: number; wx: string; luck: string }[];
-  tones: { char: string; tone: number }[];
-  homophone: string;
+  // 逐字解析
+  characterAnalysis?: CharAnalysis[];
+  // 五格
+  wuge: { name: string; strokes: number; wx: string; luck: string; meaning?: string }[];
+  // 五行补益路径
+  wuxingBenefit?: WuxingBenefit;
+  // 音韵详解
+  phoneticAnalysis?: PhoneticAnalysis;
+  // 谐音检测
+  homophoneCheck?: HomophoneCheck;
+  // 兼容旧字段
+  tones?: { char: string; tone: number }[];
+  homophone?: string;
+  // 重名风险
   repeatRisk: number;
   repeatLevel: string;
-  hotName: string;
+  charFrequency?: CharFrequency[];
+  // 热名检测
+  hotName?: string;
+  // 优化建议
+  suggestions?: Suggestion[];
+  // 总体评价
+  overallComment?: string;
+  // 兼容旧字段
+  analysis?: string;
 }
 
 // ===== 存储键 =====
