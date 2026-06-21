@@ -102,6 +102,7 @@ export async function invokeLlm(
   options: InvokeLlmOptions,
 ): Promise<InvokeLlmResult> {
   let lastError: Error | null = null;
+  const maxRetries = options.fast ? 0 : MAX_RETRIES;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
