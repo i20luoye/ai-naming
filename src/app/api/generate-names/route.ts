@@ -171,10 +171,16 @@ ${prefStr}
 
     const parsed = parseGeneratedNamesContent(response.content);
     if (!parsed.ok) {
-      // 不暴露 raw AI output（避免泄露 LLM 内部输出），只返回友好错误
-      console.error('AI起名返回格式解析失败');
+      // 不暴露 raw AI output（避免泄露 LLM 内部输出），只返回友好错误 + 诊断字段
+      console.error('AI起名返回格式解析失败:', parsed.error);
       return NextResponse.json(
-        { success: false, error: 'AI 返回格式解析失败，请稍后重试', data: { names: [] } },
+        {
+          success: false,
+          error: 'AI 返回格式解析失败，请稍后重试',
+          errorType: 'PARSE_FAILURE',
+          detail: parsed.error?.substring(0, 200) || 'unknown parse error',
+          data: { names: [] },
+        },
         { status: 502 }
       );
     }
@@ -325,6 +331,8 @@ ${prefStr}
           {
             success: false,
             error: '本次生成未能产出有效名字，请稍后重试或调整偏好',
+            errorType: 'ZERO_NAMES_AFTER_FILTER',
+            detail: `parsed=${scoredNames.length} invalid=${validation.invalidNames.length} rejectCount=${validation.invalidNames.filter((n) => n.severity === 'reject').length}`,
             data: { names: [] },
           },
           { status: 502 },
@@ -350,9 +358,15 @@ ${prefStr}
       },
     });
   } catch (error) {
-    console.error('AI起名生成错误:', error);
+    const errMsg = (error as Error)?.message || 'unknown error';
+    const isTimeout = errMsg.includes('超时') || errMsg.includes('aborted') || (error as Error)?.name === 'AbortError';
+    console.error('AI起名生成错误:', isTimeout ? 'TIMEOUT' : 'UPSTREAM_ERROR', errMsg.substring(0, 200));
     return NextResponse.json(
-      { error: '名字生成失败，请稍后重试' },
+      {
+        error: '名字生成失败，请稍后重试',
+        errorType: isTimeout ? 'LLM_TIMEOUT' : 'LLM_UPSTREAM_ERROR',
+        detail: errMsg.substring(0, 200),
+      },
       { status: 500 }
     );
   }
