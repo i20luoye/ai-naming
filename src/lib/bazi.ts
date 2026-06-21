@@ -287,7 +287,7 @@ export function calculateBazi(
 
   // 解析时辰
   const [hourStr, minuteStr] = birthTime.split(':');
-  let hour = parseInt(hourStr);
+  const hour = parseInt(hourStr);
   const minute = parseInt(minuteStr || '0');
 
   // 真太阳时校正（如果提供了经度）

@@ -15,12 +15,12 @@ import {
   Search,
   Lock,
   Unlock,
-  Users,
   Star,
   Fingerprint,
   CircleDot,
   SlidersHorizontal,
   Filter,
+  AlertCircle,
 } from 'lucide-react';
 import { SubHeader } from '@/components/tianyan/SubHeader';
 import { StepIndicator } from '@/components/tianyan/StepIndicator';
@@ -30,12 +30,20 @@ import {
   loadInput,
   loadBazi,
   loadPreference,
-  saveNames,
   type BaziData,
   type InputData,
   type PreferenceData,
   type NameItem,
 } from '@/lib/storage';
+import {
+  FALLBACK_RECOMMENDATION_LABEL,
+  BASIC_CANDIDATE_LABEL,
+  BASIC_CANDIDATE_HINT,
+  normalizeGeneratedNames,
+  type GeneratedNameView,
+} from '@/lib/name-generation';
+import { trackEvent } from '@/lib/analytics/track';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 
 /* ================================================================
    常量
@@ -46,14 +54,6 @@ const STEPS = [
   { label: '起名' },
   { label: '结果' },
 ];
-
-const WX_LUCIDE_ICON: Record<string, string> = {
-  金: 'gem',
-  木: 'leaf',
-  水: 'droplets',
-  火: 'flame',
-  土: 'mountain',
-};
 
 const SHICHEN_MAP = [
   '子时', '丑时', '寅时', '卯时', '辰时', '巳时',
@@ -144,25 +144,14 @@ const NAME_POOL: NamePoolEntry[] = [
 /* ================================================================
    生成名字（从名字池筛选 + 排序）
    ================================================================ */
-interface EnrichedName {
-  surname: string;
-  given: string;
-  fullName: string;
-  wx: string[];
-  style: string;
-  source: string;
-  meaning: string;
-  poem: string;
-  pinyin: string;
-  score: number;
-  matchCount: number;
-  advantage: string;
-  wxBenefit: string;
-  rarity: { level: string; count: number; barPct: number };
-}
+type EnrichedName = GeneratedNameView;
 
-function generateVisibleAndLocked(surname: string, xiList: string[]) {
-  const scored = NAME_POOL.map((e) => {
+function generateVisibleAndLocked(surname: string, xiList: string[], excludeChars?: string) {
+  const excludeSet = new Set((excludeChars || '').split(/[\s,，、/]+/).filter(Boolean));
+  const pool = NAME_POOL.filter((entry) => !Array.from(entry.given).some((char) => excludeSet.has(char)));
+  const sourcePool = pool.length > 0 ? pool : NAME_POOL;
+
+  const scored = sourcePool.map((e) => {
     const mc = e.wx.filter((w) => xiList.includes(w)).length;
     const hash = simpleHash(surname + e.given) % 7;
     const fs = Math.min(99, Math.max(82, e.baseScore + mc - (hash > 4 ? 1 : 0)));
@@ -184,7 +173,10 @@ function generateVisibleAndLocked(surname: string, xiList: string[]) {
     matchCount: s.matchCount,
     advantage: s.entry.advantage,
     wxBenefit: s.entry.wxBenefit,
+    sancai: '吉',
     rarity: calcRarity(s.entry.given, surname),
+    sourceType: 'fallback',
+    sourceLabel: FALLBACK_RECOMMENDATION_LABEL,
   });
 
   const visible = scored.slice(0, 5).map(toEnriched);
@@ -209,6 +201,8 @@ export default function NameResultPage() {
   /* ---- 基础数据 ---- */
   const [input, setInput] = useState<InputData | null>(null);
   const [bazi, setBazi] = useState<BaziData | null>(null);
+  /* ---- 数据缺失引导（localStorage 数据丢失时展示友好提示而非静默跳转） ---- */
+  const [dataMissing, setDataMissing] = useState(false);
 
   /* ---- 名字数据 ---- */
   const [visibleNames, setVisibleNames] = useState<EnrichedName[]>([]);
@@ -245,7 +239,6 @@ export default function NameResultPage() {
   const xiList = bazi?.xiYong || ['木', '水'];
   const dayGan = bazi?.dayMaster || '壬';
   const dayWx = bazi?.dayMasterWuxing || '水';
-  const isStrong = bazi?.strength === 'strong';
   const genderText = input ? getGenderText(input.gender) : '男';
 
   /* ================================================================
@@ -257,17 +250,13 @@ export default function NameResultPage() {
     const prefData = loadPreference();
 
     if (!inputData || !baziData) {
-      router.push('/name/input');
+      // 数据缺失：展示友好提示而非静默跳转，引导用户重新填写
+      setDataMissing(true);
       return;
     }
 
     setInput(inputData);
     setBazi(baziData);
-
-    // 生成名字
-    const { visible, locked } = generateVisibleAndLocked(inputData.surname, baziData.xiYong);
-    setVisibleNames(visible);
-    setLockedNames(locked);
 
     // 构建 AI 步骤
     const steps: AIStep[] = [
@@ -284,7 +273,7 @@ export default function NameResultPage() {
         icon: <Filter className="w-2.5 h-2.5" />,
       },
       {
-        text: '命理契合度排序完成，生成5个良名',
+        text: '五行契合度排序完成，生成名字建议',
         icon: <CheckCircle className="w-2.5 h-2.5" />,
       },
     ];
@@ -296,8 +285,10 @@ export default function NameResultPage() {
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        if (parsed.names && parsed.names.length > 0) {
+        if (parsed.visibleNames && parsed.visibleNames.length > 0) {
           // 有缓存：直接跳过 AI 前奏
+          setVisibleNames(parsed.visibleNames);
+          setLockedNames(parsed.lockedNames || []);
           setAiDone(true);
           setAiStepDone(steps.map(() => true));
           setAiCompact(true);
@@ -305,6 +296,11 @@ export default function NameResultPage() {
           setCardsRevealed(true);
           setCompareBarVisible(true);
           setUnlockRevealed(true);
+          // 埋点：结果页展示（缓存命中）
+          trackEvent(ANALYTICS_EVENTS.RESULT_VIEW, {
+            source: parsed.source || 'cache',
+            visibleCount: parsed.visibleNames.length,
+          });
           return;
         }
       } catch { /* ignore */ }
@@ -313,8 +309,10 @@ export default function NameResultPage() {
     // 启动 AI 前奏动画
     runAIPrologue(steps);
 
-    // 调用 API 流式分析
+    // 调用 API 生成名字
     generateAnalysis(inputData, baziData, prefData);
+    // 埋点：结果页展示（新生成）
+    trackEvent(ANALYTICS_EVENTS.RESULT_VIEW, { source: 'fresh' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -331,7 +329,11 @@ export default function NameResultPage() {
           setCompareBarVisible(true);
           setCardsRevealed(true);
         }, 700);
-        setTimeout(() => setUnlockRevealed(true), 1400);
+        setTimeout(() => {
+          setUnlockRevealed(true);
+          // 埋点：付费墙展示
+          trackEvent(ANALYTICS_EVENTS.PAYWALL_VIEW, { visibleCount: visibleNames.length });
+        }, 1400);
         return;
       }
       setAiStepDone((prev) => {
@@ -361,7 +363,7 @@ export default function NameResultPage() {
   }, [aiDone, aiSteps]);
 
   /* ================================================================
-     流式 AI 分析
+     AI 起名生成
      ================================================================ */
   const generateAnalysis = async (
     inputData: InputData,
@@ -381,8 +383,9 @@ export default function NameResultPage() {
           birthTime: inputData.birthTime,
           gender: inputData.gender,
           xiYong: baziData.xiYong,
+          jiShen: baziData.jiShen,
           pattern: baziData.pattern,
-          preference: prefData
+          preferences: prefData
             ? {
                 charCount: prefData.charCount,
                 styles: prefData.styles,
@@ -398,42 +401,64 @@ export default function NameResultPage() {
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('No reader');
+      const payload = await res.json();
+      if (!payload.success) throw new Error(payload.error || 'AI 返回失败');
 
-      const decoder = new TextDecoder();
-      let fullText = '';
+      const generated = normalizeGeneratedNames(
+        inputData.surname,
+        payload.data?.names || [],
+        baziData.xiYong,
+      );
+      if (generated.length === 0) throw new Error('AI 未返回可展示名字');
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const visible = generated.slice(0, 5);
+      const locked = generated.slice(5, 10);
+      const fullText = `已基于喜用方向 ${baziData.xiYong.join('、')} 和当前偏好生成 ${generated.length} 个名字建议。`;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.type === 'analysis') {
-                fullText += parsed.content;
-                setAnalysisText(fullText);
-              } else if (parsed.type === 'names') {
-                // names 已在前端生成，忽略
-              }
-            } catch {
-              fullText += data;
-              setAnalysisText(fullText);
-            }
-          }
-        }
+      setVisibleNames(visible);
+      setLockedNames(locked);
+      setAnalysisText(fullText);
+      // 埋点：起名生成成功（只记录非敏感摘要）
+      const hasKnowledgeBacked = visible.some((n) => n.knowledgeBacked);
+      const hasBasicCandidate = visible.some((n) => n.knowledgeBacked === false || n.sourceStatus === 'fallback');
+      trackEvent(ANALYTICS_EVENTS.NAMES_GENERATE_SUCCESS, {
+        knowledgeBacked: payload.data?.knowledgeBacked ?? false,
+        nameCount: generated.length,
+        visibleCount: visible.length,
+        hasBasicCandidate,
+        hasKnowledgeBacked,
+        repairedFromReject: payload.data?.repairedFromReject ?? false,
+      });
+      if (hasKnowledgeBacked) {
+        trackEvent(ANALYTICS_EVENTS.KNOWLEDGE_BACKED_RESULT_VIEW, { nameCount: visible.length });
       }
-
-      saveNames({ analysis: fullText, names: [] });
+      if (hasBasicCandidate) {
+        trackEvent(ANALYTICS_EVENTS.BASIC_CANDIDATE_VIEW, { nameCount: visible.length });
+      }
+      localStorage.setItem('tianyan_names', JSON.stringify({
+        analysis: fullText,
+        visibleNames: visible,
+        lockedNames: locked,
+        source: 'api',
+      }));
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
-        setAnalysisText('AI分析暂时不可用，请稍后重试');
+        const { visible, locked } = generateVisibleAndLocked(inputData.surname, baziData.xiYong, prefData?.excludeChars);
+        const fallbackText = 'AI 实时生成暂时不可用，以下展示基础推荐；请稍后重试以获取实时 AI 结果。';
+        setVisibleNames(visible);
+        setLockedNames(locked);
+        setAnalysisText(fallbackText);
+        // 埋点：起名生成失败（只记录非敏感摘要）
+        trackEvent(ANALYTICS_EVENTS.NAMES_GENERATE_FAILED, {
+          reason: err.message?.substring(0, 50) || 'unknown',
+          usedFallback: true,
+        });
+        localStorage.setItem('tianyan_names', JSON.stringify({
+          analysis: fallbackText,
+          visibleNames: visible,
+          lockedNames: locked,
+          source: 'fallback',
+        }));
       }
     } finally {
       setIsStreaming(false);
@@ -473,6 +498,25 @@ export default function NameResultPage() {
     localStorage.removeItem('tianyan_preference');
     localStorage.removeItem('tianyan_names');
     router.push('/name/input');
+  };
+
+  const toDetailName = (n: EnrichedName): NameItem => ({
+    surname: n.surname,
+    givenName: n.given,
+    wuxing: n.wx,
+    score: n.score,
+    sancai: n.sancai,
+    style: n.style,
+    poem: n.poem,
+    poemSource: n.source,
+    analysis: n.meaning,
+    xiYongMatch: Math.min(100, n.matchCount * 50),
+    repeatRisk: n.rarity.level,
+  });
+
+  const openNameDetail = (n: EnrichedName, idx: number) => {
+    localStorage.setItem('tianyan_selected_name', JSON.stringify(toDetailName(n)));
+    router.push(`/name/detail?id=${idx}`);
   };
 
   /* ================================================================
@@ -592,15 +636,23 @@ export default function NameResultPage() {
      ================================================================ */
   const NameCard = ({ n, idx, isTop }: { n: EnrichedName; idx: number; isTop: boolean }) => {
     const isFav = favorites.has(n.given);
+    // 基础候选：knowledgeBacked=false 或 sourceStatus=fallback 或 qualityLevel=基础候选
+    const isBasicCandidate = n.knowledgeBacked === false
+      || n.sourceStatus === 'fallback'
+      || n.qualityLevel === BASIC_CANDIDATE_LABEL;
+    // 基础候选不展示正式质量分（避免 score=0 误导）
+    const showFormalQualityScore = typeof n.qualityScore === 'number'
+      && n.qualityScore > 0
+      && !isBasicCandidate;
 
     return (
       <div
         id={`nameCard-${idx}`}
         className={`name-card rounded-sm p-5 md:p-6 transition-all duration-500 cursor-pointer ${
-          isTop ? 'is-top' : ''
+          isTop && !isBasicCandidate ? 'is-top' : ''
         } ${cardsRevealed ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-6 scale-[0.97]'}`}
         style={{ transitionDelay: cardsRevealed ? `${idx * 180}ms` : '0ms' }}
-        onClick={() => router.push(`/name/detail?id=${idx}`)}
+        onClick={() => openNameDetail(n, idx)}
       >
         <div className="flex items-start gap-4 md:gap-6">
           {/* 评分环 */}
@@ -615,20 +667,64 @@ export default function NameResultPage() {
               <span className="font-serif text-2xl md:text-3xl font-bold tracking-[0.15em]" style={{ color: '#e8d09a' }}>
                 {n.fullName}
               </span>
-              {isTop && (
+              {isTop && !isBasicCandidate && (
                 <span
                   className="inline-flex items-center gap-1 rounded px-2.5 py-0.5"
                   style={{ fontSize: '10px', background: 'rgba(200,164,92,0.12)', color: '#c8a45c', border: '1px solid rgba(200,164,92,0.3)' }}
                 >
-                  <Star className="w-2 h-2" /> 命理最优
+                  <Star className="w-2 h-2" /> 五行优选
+                </span>
+              )}
+              <span
+                className="inline-flex items-center rounded px-2 py-0.5"
+                style={{
+                  fontSize: '10px',
+                  background: isBasicCandidate ? 'rgba(212,178,106,0.12)' : (n.sourceType === 'api' ? 'rgba(129,199,132,0.1)' : 'rgba(232,208,154,0.1)'),
+                  color: isBasicCandidate ? '#d4b06a' : (n.sourceType === 'api' ? '#81c784' : '#e8d09a'),
+                  border: `1px solid ${isBasicCandidate ? 'rgba(212,178,106,0.25)' : (n.sourceType === 'api' ? 'rgba(129,199,132,0.25)' : 'rgba(232,208,154,0.25)')}`,
+                }}
+              >
+                {isBasicCandidate ? BASIC_CANDIDATE_LABEL : n.sourceLabel}
+              </span>
+              {n.knowledgeBacked && !isBasicCandidate && (
+                <span
+                  className="inline-flex items-center rounded px-2 py-0.5"
+                  style={{ fontSize: '10px', background: 'rgba(100,181,246,0.1)', color: '#64b5f6', border: '1px solid rgba(100,181,246,0.25)' }}
+                >
+                  知识库校验
+                </span>
+              )}
+              {showFormalQualityScore && (
+                <span
+                  className="inline-flex items-center rounded px-2 py-0.5"
+                  style={{ fontSize: '10px', background: 'rgba(200,164,92,0.1)', color: '#e8d09a', border: '1px solid rgba(200,164,92,0.22)' }}
+                >
+                  质量{n.qualityScore} · {n.qualityLevel || '可参考'}
                 </span>
               )}
               <RarityBadge level={n.rarity.level} />
             </div>
 
-            {isTop && (
+            {/* 质量分解释型文案：不只展示数字，还说明评分依据 */}
+            {showFormalQualityScore && n.qualityReasons && n.qualityReasons.length > 0 && (
+              <div className="text-[10px] mt-0.5 leading-relaxed" style={{ color: '#a89e8e' }}>
+                评分依据：{n.qualityReasons.slice(0, 2).join('；')}
+              </div>
+            )}
+            {showFormalQualityScore && (!n.qualityReasons || n.qualityReasons.length === 0) && (
+              <div className="text-[10px] mt-0.5" style={{ color: '#a89e8e' }}>
+                综合五行匹配、出处可信度与音韵字义评分
+              </div>
+            )}
+
+            {isTop && !isBasicCandidate && (
               <div className="text-[10px] mt-0.5" style={{ color: '#a89e8e' }}>
                 喜用神{n.matchCount >= 2 ? '双匹配' : '匹配'} · 五行补益最强
+              </div>
+            )}
+            {isBasicCandidate && (
+              <div className="text-[10px] mt-0.5" style={{ color: '#d4b06a' }}>
+                {BASIC_CANDIDATE_HINT}
               </div>
             )}
 
@@ -640,6 +736,11 @@ export default function NameResultPage() {
             <p className="text-[13px] mb-3 font-serif leading-[1.85]" style={{ color: '#e8e0d4' }}>
               &ldquo;{n.meaning}&rdquo;
             </p>
+            {n.validationWarnings && n.validationWarnings.length > 0 && (
+              <div className="text-[10px] mb-3 leading-relaxed" style={{ color: '#d4b06a' }}>
+                提醒：{n.validationWarnings[0]}
+              </div>
+            )}
 
             {/* 五行补益 + 优势 */}
             <div className="space-y-1.5 mb-3">
@@ -680,7 +781,11 @@ export default function NameResultPage() {
                 href={`/name/detail?id=${idx}`}
                 className="text-[11px] font-serif tracking-wider flex items-center gap-1 hover:opacity-80 transition-opacity"
                 style={{ color: '#c8a45c' }}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openNameDetail(n, idx);
+                }}
               >
                 <ArrowRight className="w-2.5 h-2.5" /> 查看详情
               </Link>
@@ -866,6 +971,27 @@ export default function NameResultPage() {
   /* ================================================================
      渲染
      ================================================================ */
+  // 数据缺失友好提示：引导用户重新填写，而非静默跳转
+  if (dataMissing) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#0a0806' }}>
+        <AlertCircle className="w-10 h-10 mb-4" style={{ color: '#c4564a' }} />
+        <p className="text-sm mb-2 text-center" style={{ color: '#e8e0d4' }}>
+          起名信息不完整或已过期
+        </p>
+        <p className="text-[11px] mb-6 text-center max-w-xs" style={{ color: '#a89e8e' }}>
+          请重新填写出生信息以生成起名方案
+        </p>
+        <button
+          onClick={() => router.push('/name/input')}
+          className="btn-gold px-8 py-2.5 rounded-sm font-serif text-[12px] tracking-[0.15em]"
+        >
+          重新填写
+        </button>
+      </div>
+    );
+  }
+
   if (!bazi) return null;
 
   return (
@@ -899,7 +1025,7 @@ export default function NameResultPage() {
           </p>
           <GoldLine className="max-w-[60px] mx-auto mb-3" />
           <p className="text-xs" style={{ color: '#a89e8e' }}>
-            AI基于八字命盘与您的偏好推演而得，重名率越低越独特
+            AI基于八字排盘与您的偏好推演而得，重名率越低越独特
           </p>
         </div>
 
@@ -1038,7 +1164,7 @@ export default function NameResultPage() {
           <div className="mt-8 jinming-card rounded-sm p-5">
             <h2 className="text-sm font-serif flex items-center gap-2 mb-3" style={{ color: '#c8a45c' }}>
               <Cpu className="w-3.5 h-3.5" />
-              AI 命理深度解析
+              AI 文化分析
             </h2>
             <div className="text-sm leading-relaxed min-h-[60px]" style={{ color: '#e8e0d4' }}>
               {analysisText}
@@ -1129,12 +1255,68 @@ export default function NameResultPage() {
               <p className="text-[11px] mb-3 text-center max-w-xs" style={{ color: '#a89e8e' }}>
                 解锁后查看全部名字、详细五行分析、专家点评及三才五格完整报告
               </p>
-              <div className="flex items-center gap-3 mb-3">
-                <button className="btn-vermilion px-7 py-2.5 rounded-sm font-serif text-[12px] tracking-[0.15em] flex items-center gap-2" disabled style={{ opacity: 0.7 }}>
-                  <Unlock className="w-2.5 h-2.5" />
-                  即将上线
-                </button>
+
+              {/* 免费版 vs 完整报告 权益对比 */}
+              <div className="grid grid-cols-2 gap-2 mb-3 max-w-md mx-auto" data-paywall="entitlements">
+                <div
+                  className="rounded-sm p-2.5 text-left"
+                  style={{ background: 'rgba(232,224,212,0.04)', border: '1px solid rgba(232,224,212,0.1)' }}
+                  data-tier="free"
+                >
+                  <div className="text-[10px] font-serif tracking-wider mb-1.5" style={{ color: '#a89e8e' }}>
+                    免费版
+                  </div>
+                  <ul className="text-[9px] leading-[1.7] space-y-0.5" style={{ color: '#8a8275' }}>
+                    <li>· 3 个名字</li>
+                    <li>· 基础五行分析</li>
+                    <li>· 部分出处说明</li>
+                  </ul>
+                </div>
+                <div
+                  className="rounded-sm p-2.5 text-left"
+                  style={{ background: 'rgba(200,164,92,0.08)', border: '1px solid rgba(200,164,92,0.25)' }}
+                  data-tier="full"
+                >
+                  <div className="text-[10px] font-serif tracking-wider mb-1.5" style={{ color: '#e8d09a' }}>
+                    完整报告
+                  </div>
+                  <ul className="text-[9px] leading-[1.7] space-y-0.5" style={{ color: '#c8a45c' }}>
+                    <li>· 更多候选名字</li>
+                    <li>· 完整评分解释</li>
+                    <li>· 出处与字义详解</li>
+                    <li>· 音韵与避用字校验</li>
+                    <li>· 可复制/分享/下载报告</li>
+                  </ul>
+                </div>
               </div>
+
+              {/* 价格占位 + 解锁按钮（不接真实支付） */}
+              <div className="flex items-center gap-3 mb-2" data-paywall="pricing">
+                <span className="font-serif text-base font-bold" style={{ color: '#e8d09a' }}>
+                  ¥29.9 起
+                </span>
+                <span className="text-[10px]" style={{ color: '#a89e8e' }}>
+                  一次性解锁，无后续扣费
+                </span>
+              </div>
+              <button
+                className="btn-vermilion px-7 py-2.5 rounded-sm font-serif text-[12px] tracking-[0.15em] flex items-center gap-2"
+                disabled
+                style={{ opacity: 0.7 }}
+                data-paywall="unlock-button"
+                data-action="coming-soon"
+                type="button"
+                onClick={() => {
+                  // 埋点：解锁按钮点击（不调用真实支付 API）
+                  trackEvent(ANALYTICS_EVENTS.UNLOCK_CLICK, { action: 'coming-soon' });
+                }}
+              >
+                <Unlock className="w-2.5 h-2.5" />
+                即将上线
+              </button>
+              <p className="text-[9px] mt-2" style={{ color: '#6a6256' }}>
+                支付功能即将上线，当前为预览展示，不会产生任何扣费
+              </p>
             </div>
           </div>
         </section>

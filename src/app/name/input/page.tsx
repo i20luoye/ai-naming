@@ -23,6 +23,8 @@ import { StepIndicator } from '@/components/tianyan/StepIndicator';
 import { GoldLine } from '@/components/tianyan/GoldLine';
 import { WuxingTag } from '@/components/tianyan/WuxingTag';
 import { saveInput } from '@/lib/storage';
+import { trackEvent } from '@/lib/analytics/track';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 
 // ===== 姓氏五行数据库 =====
 const surnameWxMap: Record<string, string> = {
@@ -48,9 +50,6 @@ const wxDescMap: Record<string, string> = {
   '土':'土主信，性厚重。姓属土者，宜取火生土、金泄秀；忌木克太过。',
 };
 
-const tianGan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
-const diZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
-
 const shiChenOptions = [
   { value: '0', label: '子时 (23:00-01:00)' },
   { value: '1', label: '丑时 (01:00-03:00)' },
@@ -71,7 +70,7 @@ const wishOptions = ['智慧', '安康', '事业', '温雅', '刚毅', '福泽']
 
 const stepData = [
   { num: '壹', title: '姓氏', sub: '承宗脉，一字传千载', label: 'STEP ONE' },
-  { num: '贰', title: '性别', sub: '乾坤分，阴阳定命理', label: 'STEP TWO' },
+  { num: '贰', title: '性别', sub: '乾坤分，阴阳定取向', label: 'STEP TWO' },
   { num: '叁', title: '生辰', sub: '时辰定八字，生辰启命盘', label: 'STEP THREE' },
   { num: '肆', title: '方位', sub: '地利配天时，方位正命盘', label: 'STEP FOUR' },
 ];
@@ -100,25 +99,6 @@ function getWuxingIcon(wx: string) {
     case '土': return Mountain;
     default: return Sparkles;
   }
-}
-
-function calcBazi(year: number, month: number, day: number, shichenIdx: number) {
-  const d = new Date(year, month - 1, day);
-  const yG = (year - 4) % 10;
-  const yZ = (year - 4) % 12;
-  const mG = ((yG * 2 + month) % 10 + 10) % 10;
-  const mZ = ((month + 1) % 12 + 12) % 12;
-  const base = new Date(2000, 0, 1);
-  const diff = Math.floor((d.getTime() - base.getTime()) / 86400000);
-  const dG = ((diff + 6) % 10 + 10) % 10;
-  const dZ = (diff % 12 + 12) % 12;
-  const hG = ((dG % 5) * 2 + shichenIdx) % 10;
-  return {
-    year: [tianGan[yG], diZhi[yZ]],
-    month: [tianGan[mG], diZhi[mZ]],
-    day: [tianGan[dG], diZhi[dZ]],
-    hour: [tianGan[hG], diZhi[shichenIdx]],
-  };
 }
 
 // ===== 主页面 =====
@@ -169,23 +149,6 @@ export default function NameInputPage() {
     return false;
   })();
 
-  // 八字预览
-  const baziPreview = (() => {
-    const y = isBorn ? year : dueYear;
-    const m = isBorn ? month : dueMonth;
-    const d = isBorn ? day : dueDay;
-    if (!y || !m || !d) return null;
-    const yNum = parseInt(y), mNum = parseInt(m), dNum = parseInt(d);
-    if (isNaN(yNum) || isNaN(mNum) || isNaN(dNum) || mNum < 1 || mNum > 12 || dNum < 1 || dNum > 31) return null;
-    let shiIdx = 6;
-    if (isBorn && shichen && shichen !== 'unknown') shiIdx = parseInt(shichen);
-    try {
-      return calcBazi(yNum, mNum, dNum, shiIdx);
-    } catch {
-      return null;
-    }
-  })();
-
   // 切换步骤
   const goToStep = useCallback(
     (step: number) => {
@@ -234,6 +197,13 @@ export default function NameInputPage() {
       birthCity: '',
       unknownTime: shichen === 'unknown' || !isBorn,
       isBorn,
+    });
+
+    trackEvent(ANALYTICS_EVENTS.BIRTH_INFO_SUBMIT, {
+      gender,
+      hasBirthTime: !(shichen === 'unknown' || !isBorn),
+      calendarType: 'solar',
+      surnameLength: surname.trim().length,
     });
 
     try {
@@ -347,41 +317,14 @@ export default function NameInputPage() {
                 </p>
                 <GoldLine className="max-w-[40px] mb-6" />
                 <p className="text-sm leading-relaxed text-ink-300">
-                  出生之年月日时，是为四柱八字。年柱根、月柱苗、日柱花、时柱果，四柱八字是命理推演的根基。
+                  出生之年月日时，是为四柱八字。年柱根、月柱苗、日柱花、时柱果，四柱八字是传统文化分析的参考基础。
                 </p>
-                {/* 八字预览 */}
-                {baziPreview && (
-                  <div className="mt-8">
-                    <div className="flex items-center mb-3">
-                      <span className="text-[11px] tracking-wider text-gold-600">八字预览</span>
-                      {!isBorn && (
-                        <span className="ml-2 inline-block px-2 py-0.5 rounded text-[10px] font-sans bg-gold-400/10 border border-dashed border-gold-400/30 text-gold-400">
-                          预估
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex gap-4">
-                      {(['year','month','day','hour'] as const).map((key, i) => {
-                        const labels = ['年柱','月柱','日柱','时柱'];
-                        const pillar = baziPreview[key];
-                        return (
-                          <div key={key} className="text-center bazi-pillar">
-                            <span className="block text-[10px] font-sans text-ink-300 mb-0.5 w-9 mx-auto">{labels[i]}</span>
-                            <span className={`block w-9 h-9 leading-9 border font-serif text-sm text-gold-200 transition-all rounded-t border-b-0 bg-gold-400/[0.04] border-gold-400/[0.18] ${!isBorn ? 'border-dashed opacity-70' : ''}`}>
-                              {pillar[0]}
-                            </span>
-                            <span className={`block w-9 h-9 leading-9 border font-serif text-sm text-gold-200 transition-all rounded-b bg-gold-400/[0.04] border-gold-400/[0.18] ${!isBorn ? 'border-dashed opacity-70' : ''}`}>
-                              {pillar[1]}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {shichen === 'unknown' && isBorn && (
-                      <div className="text-[10px] mt-2 text-ink-300">*时辰未定，暂以午时推算</div>
-                    )}
-                  </div>
-                )}
+                <div className="mt-8 rounded-sm border border-gold-400/15 bg-gold-400/[0.04] p-4">
+                  <div className="text-[11px] tracking-wider text-gold-600 mb-2">统一排盘说明</div>
+                  <p className="text-xs leading-relaxed text-ink-300">
+                    八字排盘将在提交后统一通过后端排盘引擎计算，避免前端预览与正式结果不一致。
+                  </p>
+                </div>
               </div>
             )}
 

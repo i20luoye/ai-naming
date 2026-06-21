@@ -8,6 +8,8 @@ import { SubHeader } from '@/components/tianyan/SubHeader';
 import { WuxingTag } from '@/components/tianyan/WuxingTag';
 import { GoldLine } from '@/components/tianyan/GoldLine';
 import { loadInput, loadBazi, savePreference, type BaziData, type InputData } from '@/lib/storage';
+import { trackEvent } from '@/lib/analytics/track';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import {
   TextCursorInput,
   Palette,
@@ -170,6 +172,14 @@ export default function NamePreferencePage() {
       styles,
       poemSources: sources,
       excludeChars: excludeChars.join(' '),
+      avoidHotNames: avoidRepeat,
+      avoidHomophone,
+    });
+    trackEvent(ANALYTICS_EVENTS.PREFERENCE_SUBMIT, {
+      charCount: nameLength === 2 ? 'single' : 'double',
+      styleCount: styles.length,
+      sourceCount: sources.length,
+      hasExcludeChars: excludeChars.length > 0,
       avoidHotNames: avoidRepeat,
       avoidHomophone,
     });

@@ -8,6 +8,8 @@ import { WuxingTag } from '@/components/tianyan/WuxingTag';
 import { GoldLine } from '@/components/tianyan/GoldLine';
 import { StepIndicator } from '@/components/tianyan/StepIndicator';
 import { saveInput } from '@/lib/storage';
+import { trackEvent } from '@/lib/analytics/track';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import {
   PenLine, Users, Clock, MapPin,
   ChevronRight, ChevronLeft, AlertTriangle,
@@ -111,34 +113,6 @@ function guessWuxing(c: string): string {
   return codes[Math.abs(h) % 5];
 }
 
-function getCharWx(c: string, surname?: string): string {
-  if (surname && SURNAME_WX[surname]) return SURNAME_WX[surname];
-  return CHAR_WX[c] || guessWuxing(c);
-}
-
-/* ====== 天干 ====== */
-const TIAN_GAN = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
-const TG_WX: Record<string, string> = { '甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水' };
-const DI_ZHI = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
-const DZ_WX: Record<string, string> = { '子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水' };
-
-function calcBazi(year: number, month: number, day: number, shichenIdx: number) {
-  const d = new Date(year, month - 1, day);
-  const yG = (year - 4) % 10, yZ = (year - 4) % 12;
-  const mG = ((yG * 2 + month) % 10 + 10) % 10, mZ = ((month + 1) % 12 + 12) % 12;
-  const base = new Date(2000, 0, 1);
-  const diff = Math.floor((d.getTime() - base.getTime()) / 86400000);
-  const dG = ((diff + 6) % 10 + 10) % 10, dZ = (diff % 12 + 12) % 12;
-  const shi = shichenIdx;
-  const hG = ((dG % 5) * 2 + shi) % 10;
-  return {
-    year: [TIAN_GAN[yG], DI_ZHI[yZ]],
-    month: [TIAN_GAN[mG], DI_ZHI[mZ]],
-    day: [TIAN_GAN[dG], DI_ZHI[dZ]],
-    hour: [TIAN_GAN[hG], DI_ZHI[shi]],
-  };
-}
-
 export default function TestNamePage() {
   const router = useRouter();
   const [step, setStep] = useState(0); // 0-indexed
@@ -210,15 +184,6 @@ export default function TestNamePage() {
   const presentWx = Object.keys(wxCount).filter(k => wxCount[k] > 0);
   const lackingWx = Object.keys(wxCount).filter(k => wxCount[k] === 0);
 
-  // Bazi preview
-  const baziPreview = (() => {
-    const y = parseInt(birthYear), m = parseInt(birthMonth), d = parseInt(birthDay);
-    if (!y || !m || !d || isNaN(y) || isNaN(m) || isNaN(d)) return null;
-    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
-    const shiIdx = shichen && shichen !== 'unknown' ? parseInt(shichen) : 6;
-    try { return calcBazi(y, m, d, isNaN(shiIdx) ? 6 : shiIdx); } catch { return null; }
-  })();
-
   // Step validation
   const isStepValid = (() => {
     if (step === 0) return isNameValid;
@@ -252,7 +217,15 @@ export default function TestNamePage() {
         unknownTime: shichen === 'unknown' || !shichen,
         isBorn: true,
         birthProvince: birthPlace || undefined,
-      } as any);
+        birthCity: '',
+      });
+
+      trackEvent(ANALYTICS_EVENTS.TEST_NAME_SUBMIT, {
+        gender,
+        hasBirthTime: !(shichen === 'unknown' || !shichen),
+        surnameLength: surname.length,
+        givenNameLength: given.length,
+      });
 
       const res = await fetch('/api/test-name', {
         method: 'POST',
@@ -267,12 +240,22 @@ export default function TestNamePage() {
       });
       const data = await res.json();
       if (data.success) {
+        trackEvent(ANALYTICS_EVENTS.TEST_NAME_SUCCESS, {
+          surnameLength: surname.length,
+          givenNameLength: given.length,
+        });
         localStorage.setItem('tianyan_test_result', JSON.stringify(data.data));
         router.push('/test-name/result');
       } else {
+        trackEvent(ANALYTICS_EVENTS.TEST_NAME_FAILED, {
+          reason: (data.error || 'unknown').substring(0, 50),
+        });
         setError(data.error || '测名失败，请重试');
       }
     } catch {
+      trackEvent(ANALYTICS_EVENTS.TEST_NAME_FAILED, {
+        reason: 'network_error',
+      });
       setError('网络错误，请检查连接后重试');
     } finally {
       setLoading(false);
@@ -334,32 +317,15 @@ export default function TestNamePage() {
               <p className="text-sm leading-relaxed mb-3 text-ink-300">{annotation.desc1}</p>
               <p className="text-sm leading-relaxed text-ink-300">{annotation.desc2}</p>
 
-              {/* 八字预览 (Step 3) */}
-              {step === 2 && baziPreview && (
-                <div className="mt-8">
-                  <div className="flex items-center mb-3">
-                    <span className="text-[11px] tracking-wider text-gold-600">八字预览</span>
+              {/* 八字分析说明 (Step 3) */}
+              {step === 2 && (
+                <div className="mt-8 rounded-sm border border-gold-400/10 bg-gold-400/[0.03] p-4">
+                  <div className="flex items-center mb-2">
+                    <span className="text-[11px] tracking-wider text-gold-600">统一分析说明</span>
                   </div>
-                  <div className="flex gap-3">
-                    {(['year','month','day','hour'] as const).map((key, idx) => {
-                      const labels = ['年柱','月柱','日柱','时柱'];
-                      const p = baziPreview[key];
-                      return (
-                        <div key={key} className="text-center">
-                          <span className="block text-ink-300 text-[9px] mb-1">{labels[idx]}</span>
-                          <span className="block w-8 h-8 leading-8 border border-gold-400/15 bg-gold-400/[0.04] font-serif text-[13px] text-gold-200 rounded-t-sm">
-                            {p[0]}
-                          </span>
-                          <span className="block w-8 h-8 leading-8 border border-gold-400/15 border-t-0 bg-gold-400/[0.04] font-serif text-[13px] text-gold-200 rounded-b-sm">
-                            {p[1]}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {shichen === 'unknown' && (
-                    <div className="text-[9px] mt-2 text-vermilion-light">*时辰未定，暂以午时推算</div>
-                  )}
+                  <p className="text-xs leading-relaxed text-ink-300">
+                    八字相关结果将在提交后通过后端排盘与测名接口统一分析，本页不再展示本地简化推算预览。
+                  </p>
                 </div>
               )}
 
@@ -656,28 +622,16 @@ export default function TestNamePage() {
 
                     <p className="text-xs mt-3 text-ink-300">请尽量精确到时辰，时辰是八字推演的关键</p>
 
-                    {/* 移动端八字预览 */}
+                    {/* 移动端八字分析说明 */}
                     <div className="md:hidden mt-4">
-                      {baziPreview && (
-                        <div>
-                          <div className="flex items-center mb-2">
-                            <span className="text-[11px] tracking-wider text-gold-600">八字预览</span>
-                          </div>
-                          <div className="flex gap-3">
-                            {(['year','month','day','hour'] as const).map((key, idx) => {
-                              const labels = ['年柱','月柱','日柱','时柱'];
-                              const p = baziPreview[key];
-                              return (
-                                <div key={key} className="text-center">
-                                  <span className="block text-ink-300 text-[9px] mb-1">{labels[idx]}</span>
-                                  <span className="block w-7 h-7 leading-7 border border-gold-400/15 bg-gold-400/[0.04] font-serif text-[11px] text-gold-200 rounded-t-sm">{p[0]}</span>
-                                  <span className="block w-7 h-7 leading-7 border border-gold-400/15 border-t-0 bg-gold-400/[0.04] font-serif text-[11px] text-gold-200 rounded-b-sm">{p[1]}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
+                      <div className="rounded-sm border border-gold-400/10 bg-gold-400/[0.03] p-3">
+                        <div className="flex items-center mb-1.5">
+                          <span className="text-[11px] tracking-wider text-gold-600">提交后分析</span>
                         </div>
-                      )}
+                        <p className="text-[11px] leading-relaxed text-ink-300">
+                          八字相关结果将由后端统一排盘，本页不做本地简化推算。
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -754,14 +708,11 @@ export default function TestNamePage() {
                               </div>
                             )}
 
-                            {/* 八字日主预览 */}
-                            {baziPreview && (
+                            {/* 八字分析状态 */}
+                            {birthYear && birthMonth && birthDay && (
                               <div className="flex items-center gap-2 text-[11px]">
-                                <span className="text-ink-300">日主：</span>
-                                <span className="font-serif font-bold text-gold-200">{baziPreview.day[0]}</span>
-                                <WuxingTag wuxing={TG_WX[baziPreview.day[0]]}>
-                                  <WxIcon wx={TG_WX[baziPreview.day[0]]} size={8} /> {TG_WX[baziPreview.day[0]]}
-                                </WuxingTag>
+                                <span className="text-ink-300">八字分析：</span>
+                                <span className="text-gold-200">提交后统一分析</span>
                               </div>
                             )}
                           </div>

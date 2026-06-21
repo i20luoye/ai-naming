@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { filterComplianceDeep } from '@/lib/compliance';
+import { checkLlmPreflight, getLlmModel } from '@/lib/llm/preflight';
+import { invokeLlm } from '@/lib/llm/client';
 
 const SYSTEM_PROMPT = `你是「天衍」AI测名系统的文化顾问，精通中国传统命名文化、八字五行理论、三才五格和音韵学。
 
@@ -129,9 +130,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const client = new LLMClient(config, customHeaders);
+    // LLM 凭证预检：缺少凭证时返回友好错误，不暴露 secret
+    const preflight = checkLlmPreflight();
+    if (!preflight.ok) {
+      console.error('LLM preflight failed before /api/test-name invocation:', {
+        reason: preflight.reason,
+        missingKeys: preflight.missingKeys,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'LLM_CREDENTIALS_MISSING',
+          error: 'AI 服务未配置，请稍后再试',
+        },
+        { status: 503 }
+      );
+    }
 
     const birthInfo = birthDate
       ? `\n- 出生日期：${birthDate}\n- 出生时间：${birthTime || '未指定'}\n- 性别：${gender || '未指定'}`
@@ -155,13 +169,13 @@ export async function POST(request: NextRequest) {
 
 返回JSON对象，不要包含任何其他文字或markdown标记。`;
 
-    const response = await client.invoke(
+    const response = await invokeLlm(
       [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
       ],
       {
-        model: 'doubao-seed-2-0-lite-260215',
+        model: getLlmModel(),
         temperature: 0.5,
       }
     );
@@ -172,10 +186,12 @@ export async function POST(request: NextRequest) {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       result = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
     } catch {
-      return NextResponse.json({
-        success: true,
-        data: { raw: response.content },
-      });
+      // JSON 解析失败：不返回 raw AI output（避免暴露 LLM 内部输出），返回友好错误
+      console.error('AI测名返回格式解析失败');
+      return NextResponse.json(
+        { success: false, error: '测名结果解析失败，请稍后重试' },
+        { status: 502 }
+      );
     }
 
     // 合规过滤

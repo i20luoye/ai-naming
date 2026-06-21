@@ -77,9 +77,9 @@
   --color-wuxing-tu: #d4c4a0;
 
   /* 字体 */
-  --font-sans: var(--font-sans, 'Noto Sans SC'), 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-serif, 'Noto Serif SC'), 'Songti SC', 'SimSun', ui-serif, Georgia, serif;
-  --font-mono: var(--font-mono, 'JetBrains Mono'), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', ui-serif, Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* 阴影 */
   --shadow-card: 0 2px 16px rgba(200, 164, 92, 0.04);

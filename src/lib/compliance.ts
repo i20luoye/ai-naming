@@ -3,31 +3,35 @@
  * 对 AI 返回内容做后处理，过滤违规词汇
  */
 
-// 合规黑名单：禁止出现的词汇（算命/改运/预测类）
-const COMPLIANCE_BLACKLIST = [
-  // 算命相关
+const COMPLIANCE_REPLACEMENTS: Record<string, string> = {
+  命理: '传统姓名文化',
+  命运: '人生发展',
+  命中注定: '顺其自然',
+  运势: '发展走势',
+  流年运势: '阶段参考',
+  今年运势: '阶段参考',
+  财运: '财富观念',
+  事业运: '职业发展参考',
+  改运: '调整表达',
+  转运: '转换表达',
+  改命: '调整表达',
+  大富大贵: '积极寓意',
+};
+
+const COMPLIANCE_BLOCK_TERMS = [
+  '逆天改命', '趋吉避凶', '消灾解难', '逢凶化吉',
   '算命', '算卦', '卜卦', '占卜', '卜算', '测字',
-  // 改运相关
-  '改运', '转运', '改命', '逆天改命', '化解', '破灾',
-  // 运势预测
-  '运势', '流年运势', '今年运势', '财运', '桃花', '事业运',
-  '命中注定', '命理', '宿命',
-  // 大师背书
+  '化解', '破灾', '桃花', '宿命',
   '大师', '师傅', '道长', '高人',
-  // 其他违规
   '开光', '加持', '法事', '还愿', '许愿',
-  '趋吉避凶', '消灾解难', '逢凶化吉',
 ];
 
-// 替换映射：某些词用合规表述替换
-const COMPLIANCE_REPLACEMENTS: Record<string, string> = {
-  '命理': '传统命理学说',
-  '命运': '人生发展',
-  '命中注定': '顺其自然',
-  '运势': '发展趋势',
-  '改运': '调整',
-  '转运': '转变',
-};
+const COMPLIANCE_BLACKLIST = [
+  ...Object.keys(COMPLIANCE_REPLACEMENTS),
+  ...COMPLIANCE_BLOCK_TERMS,
+];
+
+const BLOCK_REPLACEMENT = '文化参考';
 
 /**
  * 过滤 LLM 输出中的违规词汇
@@ -39,16 +43,16 @@ export function filterCompliance(text: string): string {
 
   let filtered = text;
 
-  // 先做替换
-  for (const [word, replacement] of Object.entries(COMPLIANCE_REPLACEMENTS)) {
+  const replacements = Object.entries(COMPLIANCE_REPLACEMENTS)
+    .sort(([a], [b]) => b.length - a.length);
+  const blockTerms = [...COMPLIANCE_BLOCK_TERMS].sort((a, b) => b.length - a.length);
+
+  for (const [word, replacement] of replacements) {
     filtered = filtered.replaceAll(word, replacement);
   }
 
-  // 再移除剩余黑名单词汇
-  for (const word of COMPLIANCE_BLACKLIST) {
-    if (filtered.includes(word)) {
-      filtered = filtered.replaceAll(word, '***');
-    }
+  for (const word of blockTerms) {
+    filtered = filtered.replaceAll(word, BLOCK_REPLACEMENT);
   }
 
   return filtered;

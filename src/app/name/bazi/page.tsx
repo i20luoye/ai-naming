@@ -20,6 +20,8 @@ import { WuxingTag } from '@/components/tianyan/WuxingTag';
 import { GoldLine } from '@/components/tianyan/GoldLine';
 import { loadInput, saveBazi } from '@/lib/storage';
 import type { BaziData } from '@/lib/storage';
+import { trackEvent } from '@/lib/analytics/track';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 
 // ===== 常量 =====
 const WUXING_COLORS: Record<string, string> = {
@@ -154,6 +156,11 @@ export default function NameBaziPage() {
           const cached = JSON.parse(cachedRaw) as ApiBaziResult;
           if (cached.pillars && cached.pillars.length === 4 && cached.wuxingCount) {
             setBazi(cached);
+            trackEvent(ANALYTICS_EVENTS.BAZI_RESULT_VIEW, {
+              dayMasterWuxing: cached.dayMasterWuxing,
+              xiYongCount: cached.xiYong?.length || 0,
+              strength: cached.strength,
+            });
             setLoading(false);
             return;
           }
@@ -172,6 +179,11 @@ export default function NameBaziPage() {
         const data = await res.json();
         if (data.success) {
           setBazi(data.data);
+          trackEvent(ANALYTICS_EVENTS.BAZI_RESULT_VIEW, {
+            dayMasterWuxing: data.data.dayMasterWuxing,
+            xiYongCount: data.data.xiYong?.length || 0,
+            strength: data.data.strength,
+          });
           localStorage.setItem('tianyan_bazi', JSON.stringify(data.data));
         } else {
           setLoadError(data.error || '排盘计算失败');

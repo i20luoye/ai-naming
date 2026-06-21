@@ -21,6 +21,8 @@ import {
   X,
 } from 'lucide-react';
 import { GoldLine } from '@/components/tianyan/GoldLine';
+import { trackEvent } from '@/lib/analytics/track';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 
 /* ──────────────────── 类型 ──────────────────── */
 
@@ -188,7 +190,7 @@ const STEPS = [
 /* ──────────────────── 工具函数 ──────────────────── */
 
 function seededRandom(s: number) {
-  let x = Math.sin(s) * 10000;
+  const x = Math.sin(s) * 10000;
   return x - Math.floor(x);
 }
 
@@ -466,6 +468,11 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, []);
 
+  /* ── 首页浏览埋点 ── */
+  useEffect(() => {
+    trackEvent(ANALYTICS_EVENTS.HOME_VIEW);
+  }, []);
+
   /* ── 今日吉名 ── */
   const dailyNames = getDailyNames();
   const { todayGan, todayZhi } = getTodayGanZhi();
@@ -657,7 +664,11 @@ export default function HomePage() {
             千年易学智慧 × 前沿AI算法<br />为生命择一良名，承天时、合五行、润一生
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 animate-fade-in-up stagger-5">
-            <Link href="/name/input" className="btn-gold px-10 py-3.5 rounded-sm font-serif text-[13px] tracking-[0.2em]">
+            <Link
+              href="/name/input"
+              className="btn-gold px-10 py-3.5 rounded-sm font-serif text-[13px] tracking-[0.2em]"
+              onClick={() => trackEvent(ANALYTICS_EVENTS.START_NAMING_CLICK)}
+            >
               开始起名
             </Link>
             <Link href="/test-name" className="btn-vermilion px-8 py-3.5 rounded-sm text-[13px] tracking-[0.15em] inline-flex items-center gap-2">
