@@ -34,8 +34,9 @@ interface ChatCompletionResponse {
 /** LLM 单次请求超时（毫秒） */
 const DEFAULT_TIMEOUT_MS = 45000;
 /** generate-names 等对延迟敏感的场景使用更短超时
- *  Edge Runtime 有 25s 限制；冷启动 ~1s + LLM 15s + 解析 ~2s = 18s，留 7s 余量。 */
-const FAST_TIMEOUT_MS = 15000;
+ *  Edge Runtime 有 25s 限制；冷启动 ~1s + LLM 20s + 解析 ~2s = 23s，留 2s 余量。
+ *  agnes-2.0-flash 模型响应较慢（简单 prompt ~8s，复杂 prompt ~15s），需要 20s 超时。 */
+const FAST_TIMEOUT_MS = 20000;
 /** LLM 上游失败时的轻量重试次数（不含首次） */
 const MAX_RETRIES = 1;
 

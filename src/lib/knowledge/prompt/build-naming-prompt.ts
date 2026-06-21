@@ -25,8 +25,7 @@ export function buildNamingPrompt(context: NamingPromptContext): NamingPromptBui
    - poemSource 必须与 poemSourceId 对应的出处卡 source.title 完全一致。
    - 如果没有合适出处，必须输出 poemSourceId: null，并标记 sourceStatus: "none"，此时 poemSource 留空。
    - 不要为了"每条名字都有出处"而编造出处；没有合适出处时果断使用 sourceStatus: "none"。
-3. 只输出 JSON 数组，不输出 Markdown 或解释性前后缀。
-4. 保持"传统文化参考""五行分析"等中性表达，不做命运预测，不暗示名字可以改变人生结果。
+3. 保持"传统文化参考""五行分析"等中性表达，不做命运预测，不暗示名字可以改变人生结果。
 
 JSON 元素格式：
 {
@@ -40,7 +39,13 @@ JSON 元素格式：
   "poemSource": "必须等于 poemSourceId 对应出处卡的 source.title；poemSourceId 为 null 时留空",
   "sourceStatus": "verified 或 none",
   "wuxingAnalysis": "传统文化参考口径的简短说明"
-}`;
+}
+
+## 输出约束（最高优先级，必须严格遵守）
+
+- 只返回 JSON 数组，以 [ 开头，以 ] 结尾
+- 不要包含任何解释、markdown、代码块标记或其他文字
+- 不要在 JSON 前后添加任何内容`;
 
   const userPrompt = `请为「${context.surname}」姓生成 4-6 个名字建议。
 
