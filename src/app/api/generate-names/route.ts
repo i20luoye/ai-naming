@@ -51,11 +51,11 @@ const CANDIDATE_CHAR_LIMIT = 45;
 const CLASSIC_QUOTE_LIMIT = 16;
 
 /**
- * Vercel Serverless Function 最大执行时长（秒）
- * Fluid Compute 默认启用时 Hobby 可到 60s，设 45s 留余量
- * 确保 LLM 调用 + repair 重试在超时前完成
+ * Edge Runtime：Vercel Hobby 上 Edge Function 有 25s 超时（vs Serverless 10s）
+ * 足以覆盖 LLM 15s 调用 + 冷启动 + 解析验证
  */
-export const maxDuration = 45;
+export const runtime = 'edge';
+export const maxDuration = 25;
 
 export async function POST(request: NextRequest) {
   try {

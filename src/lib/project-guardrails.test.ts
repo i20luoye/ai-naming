@@ -760,13 +760,15 @@ test('Blocker: site-config warns in production when NEXT_PUBLIC_SITE_URL missing
   assert.doesNotMatch(source, /ai-naming-six\.vercel\.app/);
 });
 
-test('Blocker: generate-names has maxDuration export for Vercel', () => {
+test('Blocker: generate-names has maxDuration and Edge runtime for Vercel', () => {
   const source = readProjectFile('src/app/api/generate-names/route.ts');
 
   // 必须导出 maxDuration
   assert.match(source, /export const maxDuration/);
-  // 值应在合理范围（30-60 秒）
-  assert.match(source, /maxDuration\s*=\s*(?:[3-5]\d|60)/);
+  // 值应在合理范围（20-60 秒；Edge Runtime Hobby 上限 25s）
+  assert.match(source, /maxDuration\s*=\s*(?:[2-5]\d|60)/);
+  // 必须使用 Edge Runtime（Hobby 25s 超时 vs Serverless 10s）
+  assert.match(source, /runtime\s*=\s*['"]edge['"]/);
 });
 
 test('Blocker: LLM client has AbortController timeout and retry', () => {
