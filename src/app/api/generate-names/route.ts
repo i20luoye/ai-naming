@@ -164,9 +164,11 @@ ${prefStr}
     ];
 
     // 第一次 LLM 生成
+    // 使用 fast 模式：8s 超时 + 不重试，避免 Vercel 函数超时（504）
     const response = await invokeLlm(messages, {
       model: getLlmModel(),
       temperature: 0.8,
+      fast: true,
     });
 
     const parsed = parseGeneratedNamesContent(response.content);
@@ -199,7 +201,13 @@ ${prefStr}
     let repairedFromReject = false;
 
     // reject 修复机制：最多重试 1 次
-    if (validation.invalidNames.some((invalid) => invalid.severity === 'reject') && knowledgeBacked) {
+    // 在 Vercel 等有严格函数超时限制的环境下跳过 repair（避免第二次 LLM 调用导致 504）
+    const isVercel = !!process.env.VERCEL;
+    if (
+      !isVercel &&
+      validation.invalidNames.some((invalid) => invalid.severity === 'reject') &&
+      knowledgeBacked
+    ) {
       const repairResult = await attemptRepair({
         rejectedNames: validation.invalidNames
           .filter((invalid) => invalid.severity === 'reject')

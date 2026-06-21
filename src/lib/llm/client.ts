@@ -10,6 +10,8 @@ export interface InvokeLlmOptions {
   temperature?: number;
   /** 单次请求超时（毫秒），默认 45000 */
   timeoutMs?: number;
+  /** 是否启用快速模式（8s 超时，不重试），用于 Vercel 等有严格函数超时限制的环境 */
+  fast?: boolean;
 }
 
 export interface InvokeLlmResult {
@@ -31,6 +33,8 @@ interface ChatCompletionResponse {
 
 /** LLM 单次请求超时（毫秒） */
 const DEFAULT_TIMEOUT_MS = 45000;
+/** generate-names 等对延迟敏感的场景使用更短超时（低于 Vercel 函数限制） */
+const FAST_TIMEOUT_MS = 8000;
 /** LLM 上游失败时的轻量重试次数（不含首次） */
 const MAX_RETRIES = 1;
 
@@ -47,7 +51,10 @@ async function invokeLlmOnce(
     throw new Error('LLM client is missing required configuration');
   }
 
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs = options.fast
+    ? FAST_TIMEOUT_MS
+    : options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxRetries = options.fast ? 0 : MAX_RETRIES;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -95,7 +102,7 @@ export async function invokeLlm(
 ): Promise<InvokeLlmResult> {
   let lastError: Error | null = null;
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await invokeLlmOnce(messages, options);
     } catch (error) {
@@ -108,7 +115,7 @@ export async function invokeLlm(
         break;
       }
       // 最后一次尝试失败后退出
-      if (attempt === MAX_RETRIES) {
+      if (attempt === maxRetries) {
         break;
       }
       // 重试前短暂等待

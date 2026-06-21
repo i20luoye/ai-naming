@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "src/app/api/generate-names/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/test-name/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
