@@ -34,7 +34,7 @@ interface ChatCompletionResponse {
 /** LLM 单次请求超时（毫秒） */
 const DEFAULT_TIMEOUT_MS = 45000;
 /** generate-names 等对延迟敏感的场景使用更短超时（低于 Vercel 函数限制） */
-const FAST_TIMEOUT_MS = 8000;
+const FAST_TIMEOUT_MS = 6000;
 /** LLM 上游失败时的轻量重试次数（不含首次） */
 const MAX_RETRIES = 1;
 
