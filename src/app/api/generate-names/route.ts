@@ -50,6 +50,13 @@ const CANDIDATE_CHAR_LIMIT = 45;
 /** 出处卡上限（从 10 提升到 16） */
 const CLASSIC_QUOTE_LIMIT = 16;
 
+/**
+ * Vercel Serverless Function 最大执行时长（秒）
+ * Fluid Compute 默认启用时 Hobby 可到 60s，设 45s 留余量
+ * 确保 LLM 调用 + repair 重试在超时前完成
+ */
+export const maxDuration = 45;
+
 export async function POST(request: NextRequest) {
   try {
     // IP 限流
@@ -286,14 +293,58 @@ ${prefStr}
     // 合规过滤
     const filteredNames = filterComplianceDeep(namesWithFallbackMarker);
 
+    // 0 名字兜底：不允许 success=true 且 names.length=0
+    // 如果所有名字都被过滤/reject，走基础候选 fallback
+    let finalNames = filteredNames;
+    let finalKnowledgeBacked = knowledgeBacked;
+    let finalValidationWarnings = validationWarnings;
+    if (finalNames.length === 0) {
+      // 尝试用未过滤的 scoredNames 作为基础候选（移除 reject 项后）
+      const nonRejectNames = scoredNames.filter((item) => {
+        const givenName = item.name || item.givenName || '';
+        const issue = validation.invalidNames.find((invalid) => invalid.name === givenName);
+        return issue?.severity !== 'reject';
+      });
+      if (nonRejectNames.length > 0) {
+        finalNames = filterComplianceDeep(
+          nonRejectNames.map((item) => ({
+            ...item,
+            knowledgeBacked: false,
+            sourceStatus: 'fallback' as const,
+            qualityLevel: '基础候选',
+            validationWarnings: [
+              ...(item.validationWarnings || []),
+              '本次知识约束结果不足，已提供基础候选参考',
+            ],
+          })),
+        );
+      }
+      // 如果仍然为 0，构造明确错误而非返回空数组
+      if (finalNames.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '本次生成未能产出有效名字，请稍后重试或调整偏好',
+            data: { names: [] },
+          },
+          { status: 502 },
+        );
+      }
+      finalKnowledgeBacked = false;
+      finalValidationWarnings = [
+        ...validationWarnings,
+        '本次知识约束结果不足，已提供基础候选参考',
+      ];
+    }
+
     return NextResponse.json({
       success: true,
-      knowledgeBacked,
-      validationWarnings,
+      knowledgeBacked: finalKnowledgeBacked,
+      validationWarnings: finalValidationWarnings,
       data: {
-        names: filteredNames,
-        knowledgeBacked,
-        validationWarnings,
+        names: finalNames,
+        knowledgeBacked: finalKnowledgeBacked,
+        validationWarnings: finalValidationWarnings,
         repairedFromReject,
         repairWarnings,
       },

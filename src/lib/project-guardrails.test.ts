@@ -737,3 +737,98 @@ test('Smoke: document contains rollback plan', () => {
   // 必须包含白屏场景
   assert.match(source, /白屏/);
 });
+
+/* ================================================================
+   Production Blocker Fix Pack 测试
+   ================================================================ */
+
+test('Blocker: env-check marks NEXT_PUBLIC_SITE_URL as missing in production', () => {
+  const source = readProjectFile('src/lib/env/env-check.ts');
+
+  // 生产环境缺失 NEXT_PUBLIC_SITE_URL 应标记为 missing（阻断），而非仅 warning
+  assert.match(source, /publicEnv\.appEnv === 'production'/);
+  assert.match(source, /missing\.push\('NEXT_PUBLIC_SITE_URL'\)/);
+});
+
+test('Blocker: site-config warns in production when NEXT_PUBLIC_SITE_URL missing', () => {
+  const source = readProjectFile('src/lib/seo/site-config.ts');
+
+  // 生产环境 fallback localhost 时应输出警告
+  assert.match(source, /appEnv === 'production'/);
+  assert.match(source, /console\.warn/);
+  // 不硬编码生产域名
+  assert.doesNotMatch(source, /ai-naming-six\.vercel\.app/);
+});
+
+test('Blocker: generate-names has maxDuration export for Vercel', () => {
+  const source = readProjectFile('src/app/api/generate-names/route.ts');
+
+  // 必须导出 maxDuration
+  assert.match(source, /export const maxDuration/);
+  // 值应在合理范围（30-60 秒）
+  assert.match(source, /maxDuration\s*=\s*(?:[3-5]\d|60)/);
+});
+
+test('Blocker: LLM client has AbortController timeout and retry', () => {
+  const source = readProjectFile('src/lib/llm/client.ts');
+
+  // 必须有 AbortController
+  assert.match(source, /AbortController/);
+  assert.match(source, /controller\.signal/);
+  // 必须有超时配置
+  assert.match(source, /timeoutMs|DEFAULT_TIMEOUT_MS/);
+  // 必须有重试逻辑
+  assert.match(source, /MAX_RETRIES/);
+  // 不暴露 API key / stack trace
+  assert.match(source, /不暴露.*API key|不暴露.*stack/i);
+});
+
+test('Blocker: generate-names does not return success=true with 0 names', () => {
+  const source = readProjectFile('src/app/api/generate-names/route.ts');
+
+  // 必须有 0 名字兜底逻辑
+  assert.match(source, /finalNames\.length === 0/);
+  // 兜底应走基础候选 fallback
+  assert.match(source, /sourceStatus.*fallback/);
+  assert.match(source, /基础候选/);
+  // 如果仍然为 0，应返回 502 而非 success=true
+  assert.match(source, /success: false/);
+  assert.match(source, /status: 502/);
+});
+
+test('Blocker: compliance page title does not duplicate 天衍', () => {
+  const source = readProjectFile('src/components/compliance/ComplianceLayout.tsx');
+
+  // buildCompliancePageMeta 不应在 title 中手动拼接 ' · 天衍'
+  // 因为 layout 的 title.template 会自动追加
+  const metaMatch = source.match(/buildCompliancePageMeta[\s\S]*?title:\s*([^,\n]+)/);
+  if (metaMatch) {
+    // title 应该只是变量名（如 title），不应包含 ' · 天衍' 拼接
+    assert.doesNotMatch(metaMatch[1], /· 天衍/);
+  }
+});
+
+test('Blocker: production-smoke-test.md contains Vercel Redeploy requirement', () => {
+  const source = readProjectFile('docs/current/production-smoke-test.md');
+
+  // 必须包含 Vercel 环境变量配置说明
+  assert.match(source, /Vercel/);
+  assert.match(source, /Redeploy/);
+  // 必须强调修改环境变量后必须 Redeploy
+  assert.match(source, /必须 Redeploy|必须.*重新部署/);
+});
+
+test('Blocker: generate-names 502 still does not expose sensitive data', () => {
+  const source = readProjectFile('src/app/api/generate-names/route.ts');
+
+  // 502 响应不应包含 raw 字段
+  const error502Match = source.match(/status:\s*502[\s\S]*?\)/);
+  if (error502Match) {
+    assert.doesNotMatch(error502Match[0], /raw:/);
+  }
+  // catch 块不应暴露 error 详情
+  const catchMatch = source.match(/catch[\s\S]*?NextResponse\.json\([\s\S]*?\)/);
+  if (catchMatch) {
+    assert.doesNotMatch(catchMatch[0], /error\.message|error\.stack/);
+  }
+});

@@ -47,7 +47,24 @@
 - **`NEXT_PUBLIC_SITE_URL` 必须是真实生产域名**：不得是 `localhost`、`127.0.0.1` 或内网 IP
 - **客户端不暴露 secret**：`LLM_API_KEY` 不得出现在客户端 bundle 中
 
-### 2.3 环境变量验证方法
+### 2.3 Vercel 部署环境变量配置（必须）
+
+在 Vercel 项目设置 → Settings → Environment Variables 中配置以下变量：
+
+| Key | Value | Environment | 说明 |
+|---|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | `https://ai-naming-six.vercel.app` | Production | 生产域名（替换为你的实际域名） |
+| `NEXT_PUBLIC_APP_ENV` | `production` | Production | 生产环境标识 |
+| `LLM_API_KEY` | 你的真实 API Key | Production | LLM 服务密钥 |
+| `LLM_BASE_URL` | `https://apihub.agnes-ai.com/v1` | Production | LLM API 基础 URL |
+| `LLM_MODEL` | `agnes-2.0-flash` | Production | LLM 模型名称 |
+
+**重要提醒**：
+- 修改 Vercel 环境变量后**必须 Redeploy**，旧部署不会自动应用新环境变量
+- `NEXT_PUBLIC_*` 变量在构建时注入，不 Redeploy 不会生效
+- 在 Vercel Dashboard → Deployments → 找到最新部署 → 右侧菜单 → Redeploy
+
+### 2.4 环境变量验证方法
 
 ```bash
 # 检查 NEXT_PUBLIC_SITE_URL 是否为生产域名

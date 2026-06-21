@@ -33,6 +33,13 @@ export function getSiteUrl(): string {
   if (envUrl && envUrl.trim().length > 0) {
     return envUrl.replace(/\/+$/, '');
   }
+  // 生产环境缺失 NEXT_PUBLIC_SITE_URL 时输出明确警告（不抛错，保持服务可用）
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV || process.env.NODE_ENV;
+  if (appEnv === 'production') {
+    console.warn(
+      '[site-config] NEXT_PUBLIC_SITE_URL 未设置，生产环境 sitemap/robots/canonical 将回退到 localhost。请在 Vercel 环境变量中配置 NEXT_PUBLIC_SITE_URL 并 Redeploy。',
+    );
+  }
   // 本地开发回退，不作为生产地址
   return 'http://localhost:5000';
 }

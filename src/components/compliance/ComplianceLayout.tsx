@@ -6,7 +6,9 @@ import { buildPageMeta } from '@/lib/seo/site-config';
 /** 合规页面通用元数据构造器 */
 export function buildCompliancePageMeta(title: string, path: string) {
   return buildPageMeta(path, {
-    title: `${title} · 天衍`,
+    // 只传页面标题，layout 的 title.template（'%s · 天衍'）会自动追加 ' · 天衍'
+    // 避免出现「隐私政策 · 天衍 · 天衍」双重后缀
+    title,
     description: `天衍${title}：明确产品定位为传统文化起名参考与 AI 辅助姓名创意工具，不提供医疗、法律、投资、命运预测建议。`,
     keywords: [title, '天衍', 'AI起名', '传统文化参考'],
   });

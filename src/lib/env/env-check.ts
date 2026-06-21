@@ -36,15 +36,20 @@ export function checkPublicEnv(): EnvCheckResult {
   const publicEnv = getPublicEnv();
 
   if (!process.env.NEXT_PUBLIC_SITE_URL?.trim()) {
-    warnings.push(
-      'NEXT_PUBLIC_SITE_URL 未设置，sitemap/canonical 将回退到 localhost。生产环境必须设置此变量。',
-    );
+    // 生产环境缺失 NEXT_PUBLIC_SITE_URL 是阻断问题（sitemap/robots/canonical 会用 localhost）
+    if (publicEnv.appEnv === 'production') {
+      missing.push('NEXT_PUBLIC_SITE_URL');
+    } else {
+      warnings.push(
+        'NEXT_PUBLIC_SITE_URL 未设置，sitemap/canonical 将回退到 localhost。生产环境必须设置此变量。',
+      );
+    }
   }
 
   // 检测是否在生产环境硬编码 localhost
   if (publicEnv.appEnv === 'production' && publicEnv.siteUrl.includes('localhost')) {
     warnings.push(
-      '生产环境检测到 localhost 作为 siteUrl，请设置 NEXT_PUBLIC_SITE_URL 为正式域名。',
+      '生产环境检测到 localhost 作为 siteUrl，请设置 NEXT_PUBLIC_SITE_URL 为正式域名并 Redeploy。',
     );
   }
 
