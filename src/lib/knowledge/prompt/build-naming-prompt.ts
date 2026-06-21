@@ -42,7 +42,7 @@ JSON 元素格式：
   "wuxingAnalysis": "传统文化参考口径的简短说明"
 }`;
 
-  const userPrompt = `请为「${context.surname}」姓生成 5-8 个名字建议。
+  const userPrompt = `请为「${context.surname}」姓生成 4-6 个名字建议。
 
 基本信息：
 - 性别：${context.gender || '未指定'}

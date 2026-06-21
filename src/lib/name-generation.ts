@@ -64,15 +64,45 @@ export function parseGeneratedNamesContent(content: string): {
   ok: boolean;
   names: GeneratedNameApiItem[];
   raw?: string;
+  error?: string;
 } {
   const trimmed = content.trim();
   try {
     const jsonMatch = trimmed.match(/\[[\s\S]*\]/);
     const names = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(trimmed);
     return { ok: Array.isArray(names), names: Array.isArray(names) ? names : [], raw: content };
-  } catch {
-    return { ok: false, names: [], raw: content };
+  } catch (e) {
+    // 容错处理：LLM 响应可能因超时被截断，尝试提取已完成的 JSON 对象
+    const recovered = recoverTruncatedJsonArray(trimmed);
+    if (recovered.length > 0) {
+      return { ok: true, names: recovered, raw: content };
+    }
+    return { ok: false, names: [], raw: content, error: (e as Error)?.message?.substring(0, 100) };
   }
+}
+
+/**
+ * 从可能被截断的 LLM 输出中恢复已完成的 JSON 对象
+ * 处理场景：LLM 超时导致 JSON 数组在中间被截断
+ */
+function recoverTruncatedJsonArray(content: string): GeneratedNameApiItem[] {
+  const recovered: GeneratedNameApiItem[] = [];
+  // 匹配完整的 JSON 对象（从 { 到匹配的 }）
+  const objectRegex = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
+  const matches = content.match(objectRegex);
+  if (!matches) return recovered;
+
+  for (const match of matches) {
+    try {
+      const obj = JSON.parse(match);
+      if (obj && typeof obj === 'object' && (obj.name || obj.givenName)) {
+        recovered.push(obj as GeneratedNameApiItem);
+      }
+    } catch {
+      // 跳过无法解析的单个对象
+    }
+  }
+  return recovered;
 }
 
 export function normalizeGeneratedNames(
