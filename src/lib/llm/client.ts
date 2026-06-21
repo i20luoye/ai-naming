@@ -33,8 +33,10 @@ interface ChatCompletionResponse {
 
 /** LLM 单次请求超时（毫秒） */
 const DEFAULT_TIMEOUT_MS = 45000;
-/** generate-names 等对延迟敏感的场景使用更短超时（低于 Vercel 函数限制） */
-const FAST_TIMEOUT_MS = 7000;
+/** generate-names 等对延迟敏感的场景使用更短超时
+ *  Vercel Hobby 硬限制 10s；冷启动 ~2s + LLM 5s + 解析 ~2s = 9s，留 1s 余量。
+ *  配合 recoverTruncatedJsonArray，即使 5s 截断也能恢复部分名字。 */
+const FAST_TIMEOUT_MS = 5000;
 /** LLM 上游失败时的轻量重试次数（不含首次） */
 const MAX_RETRIES = 1;
 
